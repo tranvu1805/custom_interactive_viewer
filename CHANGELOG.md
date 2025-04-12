@@ -1,3 +1,10 @@
+## 0.0.2 - 2024-04-12
+
+### Added
+- Fling behavior for smooth inertial scrolling after quick pan gestures
+- Dynamic friction coefficient that's adjusted based on gesture velocity
+- Optimizations for fling animation performance
+
 ## 0.0.1 - 2024-04-12
 
 ### Added

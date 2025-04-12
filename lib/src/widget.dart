@@ -59,6 +59,9 @@ class CustomInteractiveViewer extends StatefulWidget {
   /// The interval between repeated key actions.
   final Duration keyRepeatInterval;
 
+  /// Whether to enable fling behavior for smooth scrolling after a quick pan gesture.
+  final bool enableFling;
+
   /// Creates a [CustomInteractiveViewer].
   ///
   /// The [child] and [controller] parameters are required.
@@ -82,6 +85,7 @@ class CustomInteractiveViewer extends StatefulWidget {
     this.keyRepeatInitialDelay = const Duration(milliseconds: 500),
     this.keyRepeatInterval = const Duration(milliseconds: 50),
     this.enableCtrlScrollToScale = true,
+    this.enableFling = true,
   });
 
   @override
@@ -102,7 +106,6 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
 
   /// Handles keyboard interactions.
   late KeyboardHandler _keyboardHandler;
-
 
   @override
   void initState() {
@@ -250,6 +253,8 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
         child: GestureDetector(
           onScaleStart: _gestureHandler.handleScaleStart,
           onScaleUpdate: _gestureHandler.handleScaleUpdate,
+          onScaleEnd:
+              widget.enableFling ? _gestureHandler.handleScaleEnd : null,
           onDoubleTapDown:
               widget.enableDoubleTapZoom
                   ? _gestureHandler.handleDoubleTapDown

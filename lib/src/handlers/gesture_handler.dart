@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:custom_interactive_viewer/src/controller/interactive_controller.dart';
 
@@ -12,6 +14,9 @@ class GestureHandler {
 
   /// Whether to constrain content to bounds
   final bool constrainBounds;
+
+  /// Whether fling behavior is enabled
+  final bool enableFling;
 
   /// Whether double-tap zoom is enabled
   final bool enableDoubleTapZoom;
@@ -49,6 +54,12 @@ class GestureHandler {
   /// Tracks whether Ctrl key is currently pressed
   bool _isCtrlPressed = false;
 
+  /// Simulation for the fling animation
+  Simulation? _flingSimulation;
+
+  /// Timer for the fling animation
+  Timer? _flingTimer;
+
   /// Creates a gesture handler
   GestureHandler({
     required this.controller,
@@ -61,6 +72,7 @@ class GestureHandler {
     required this.enableCtrlScrollToScale,
     required this.minScale,
     required this.maxScale,
+    this.enableFling = true,
   });
 
   /// Sets the current Ctrl key state
@@ -88,7 +100,6 @@ class GestureHandler {
     if (enableRotation && details.pointerCount >= 2) {
       newRotation = _lastRotation + details.rotation;
     }
-
     controller.update(
       newScale: newScale,
       newOffset: controller.offset + focalDiff,
@@ -98,6 +109,96 @@ class GestureHandler {
     _applyConstraints();
 
     _lastFocalPoint = details.focalPoint;
+  }
+
+  /// Handles the end of a scale gesture
+  void handleScaleEnd(ScaleEndDetails details) {
+    // Only process fling for single pointer panning (not for pinch/zoom)
+    if (!enableFling || details.pointerCount > 1) return;
+
+    // Start a fling animation if the velocity is significant
+    final double velocityMagnitude = details.velocity.pixelsPerSecond.distance;
+    if (velocityMagnitude >= 200.0) {
+      _startFling(details.velocity);
+    }
+  }
+
+  /// Starts a fling animation with the given velocity
+  void _startFling(Velocity velocity) {
+    _stopFling(); // Stop any existing fling
+
+    // Calculate appropriate friction based on velocity magnitude
+    // Use higher friction for faster flicks to prevent excessive movement
+    final double velocityMagnitude = velocity.pixelsPerSecond.distance;
+    final double frictionCoefficient = _calculateDynamicFriction(
+      velocityMagnitude,
+    );
+
+    // Create a friction simulation for the fling
+    _flingSimulation = FrictionSimulation(
+      frictionCoefficient, // dynamic friction coefficient
+      0.0, // initial position (we'll use this for time, not position)
+      velocityMagnitude, // velocity magnitude
+    );
+
+    // Get the fling direction as a normalized vector
+    final Offset direction =
+        velocity.pixelsPerSecond.distance > 0
+            ? velocity.pixelsPerSecond / velocity.pixelsPerSecond.distance
+            : Offset.zero;
+
+    // Start time tracking
+    final startTime = DateTime.now().millisecondsSinceEpoch;
+
+    // Create a timer that updates the position 60 times per second
+    _flingTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final elapsedSeconds = (now - startTime) / 1000.0;
+
+      // Calculate the new position using the physics simulation
+      final double distance = _flingSimulation!.x(elapsedSeconds);
+      final double prevDistance = _flingSimulation!.x(elapsedSeconds - 0.016);
+      final double delta = distance - prevDistance;
+
+      // Skip tiny movements at the end of the animation
+      if (delta.abs() < 0.1 && _flingSimulation!.isDone(elapsedSeconds)) {
+        _stopFling();
+        return;
+      }
+
+      // Apply the movement in the direction of the fling
+      final Offset movement = direction * delta;
+
+      // Update the controller position
+      controller.update(newOffset: controller.offset + movement);
+
+      _applyConstraints();
+
+      // Stop the fling when the animation is done
+      if (_flingSimulation!.isDone(elapsedSeconds)) {
+        _stopFling();
+      }
+    });
+  }
+
+  /// Calculate appropriate friction based on velocity magnitude
+  double _calculateDynamicFriction(double velocityMagnitude) {
+    // Use higher friction for faster flicks
+    // These values can be tuned for the feel you want
+    if (velocityMagnitude > 5000) {
+      return 0.03; // Higher friction for very fast flicks
+    } else if (velocityMagnitude > 3000) {
+      return 0.02; // Medium friction for moderate flicks
+    } else {
+      return 0.01; // Lower friction for gentle movements
+    }
+  }
+
+  /// Stops any active fling animation
+  void _stopFling() {
+    _flingTimer?.cancel();
+    _flingTimer = null;
+    _flingSimulation = null;
   }
 
   /// Stores double tap position for zoom
