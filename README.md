@@ -153,7 +153,7 @@ CustomInteractiveViewer(
 
 ## Version Information
 
-This is the first release (1.0.0) of the Custom Interactive Viewer package. The package provides a solid foundation of features while maintaining good performance and a clean API.
+This is the first release (0.0.1) of the Custom Interactive Viewer package. The package provides a solid foundation of features while maintaining good performance and a clean API.
 
 ## Contributing
 
