@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:custom_interactive_viewer/src/controller/interactive_controller.dart';
 
 /// A handler for keyboard interactions with [CustomInteractiveViewer]
-class KeyboardHandler {
+class KeyboardHandler with WidgetsBindingObserver {
   /// The controller that manages the view state
   final CustomInteractiveViewerController controller;
 
@@ -26,6 +26,15 @@ class KeyboardHandler {
   /// Interval between repeated key actions
   final Duration keyRepeatInterval;
 
+  /// Whether to animate transitions when using keyboard controls
+  final bool animateKeyboardTransitions;
+
+  /// Duration of keyboard transition animations
+  final Duration keyboardAnimationDuration;
+
+  /// Animation curve for keyboard transitions
+  final Curve keyboardAnimationCurve;
+
   /// Focus node to receive keyboard input
   final FocusNode focusNode;
 
@@ -44,6 +53,12 @@ class KeyboardHandler {
   /// Timer for key repeat interval
   Timer? _keyRepeatTimer;
 
+  /// Flag to track if the application has focus
+  bool _hasAppFocus = true;
+
+  /// Safety timer to check for stale key states
+  Timer? _safetyCheckTimer;
+
   /// The reference to the viewport
   final GlobalKey viewportKey;
 
@@ -52,6 +67,9 @@ class KeyboardHandler {
 
   /// Maximum allowed scale
   final double maxScale;
+
+  /// Whether keyboard zoom is enabled
+  final bool enableKeyboardZoom;
 
   /// Creates a keyboard handler
   KeyboardHandler({
@@ -62,19 +80,35 @@ class KeyboardHandler {
     required this.enableKeyRepeat,
     required this.keyRepeatInitialDelay,
     required this.keyRepeatInterval,
+    required this.animateKeyboardTransitions,
+    required this.keyboardAnimationDuration,
+    required this.keyboardAnimationCurve,
     required this.focusNode,
     required this.constrainBounds,
     required this.contentSize,
     required this.viewportKey,
     required this.minScale,
     required this.maxScale,
-  });
+    required this.enableKeyboardZoom,
+  }) {
+    // Register as an observer to detect app lifecycle changes
+    WidgetsBinding.instance.addObserver(this);
+
+    // Set up a safety timer to periodically check for stale key states
+    _setupSafetyTimer();
+
+    // Add listener to focus node to track focus changes
+    focusNode.addListener(_handleFocusChange);
+  }
 
   /// Handles a key event and returns whether it was handled
   KeyEventResult handleKeyEvent(KeyEvent event) {
     if (!enableKeyboardControls) {
       return KeyEventResult.ignored;
     }
+
+    // Reset safety timer whenever we get a key event
+    _resetSafetyTimer();
 
     // Handle key down events
     if (event is KeyDownEvent) {
@@ -110,7 +144,6 @@ class KeyboardHandler {
         return KeyEventResult.handled;
       }
     }
-
     return KeyEventResult.ignored;
   }
 
@@ -120,36 +153,46 @@ class KeyboardHandler {
         key == LogicalKeyboardKey.arrowRight ||
         key == LogicalKeyboardKey.arrowUp ||
         key == LogicalKeyboardKey.arrowDown ||
-        key == LogicalKeyboardKey.minus ||
-        key == LogicalKeyboardKey.numpadSubtract ||
-        key == LogicalKeyboardKey.equal ||
-        key == LogicalKeyboardKey.numpadAdd;
+        (key == LogicalKeyboardKey.minus ||
+                key == LogicalKeyboardKey.numpadSubtract ||
+                key == LogicalKeyboardKey.equal ||
+                key == LogicalKeyboardKey.numpadAdd) &&
+            enableKeyboardZoom;
   }
 
   /// Process key actions for currently pressed keys
   void _processKeyActions() {
     if (!enableKeyboardControls || _pressedKeys.isEmpty) return;
 
+    // If already animating and using key repeat, skip to prevent animation conflicts
+    if (controller.isAnimating &&
+        animateKeyboardTransitions &&
+        _keyRepeatTimer != null) {
+      return;
+    }
+
     double? newScale;
     Offset? newOffset;
     bool actionPerformed = false;
 
     // Process zoom keys
-    if (_pressedKeys.contains(LogicalKeyboardKey.minus) ||
-        _pressedKeys.contains(LogicalKeyboardKey.numpadSubtract)) {
-      newScale = (controller.scale / keyboardZoomFactor).clamp(
-        minScale,
-        maxScale,
-      );
-      actionPerformed = true;
-    } else if ((_pressedKeys.contains(LogicalKeyboardKey.equal) &&
-            HardwareKeyboard.instance.isShiftPressed) ||
-        _pressedKeys.contains(LogicalKeyboardKey.numpadAdd)) {
-      newScale = (controller.scale * keyboardZoomFactor).clamp(
-        minScale,
-        maxScale,
-      );
-      actionPerformed = true;
+    if (enableKeyboardZoom) {
+      if (_pressedKeys.contains(LogicalKeyboardKey.minus) ||
+          _pressedKeys.contains(LogicalKeyboardKey.numpadSubtract)) {
+        newScale = (controller.scale / keyboardZoomFactor).clamp(
+          minScale,
+          maxScale,
+        );
+        actionPerformed = true;
+      } else if ((_pressedKeys.contains(LogicalKeyboardKey.equal) &&
+              HardwareKeyboard.instance.isShiftPressed) ||
+          _pressedKeys.contains(LogicalKeyboardKey.numpadAdd)) {
+        newScale = (controller.scale * keyboardZoomFactor).clamp(
+          minScale,
+          maxScale,
+        );
+        actionPerformed = true;
+      }
     }
 
     // Process arrow keys for panning
@@ -161,7 +204,33 @@ class KeyboardHandler {
 
     // Apply actions if needed
     if (actionPerformed) {
-      controller.update(newScale: newScale, newOffset: newOffset);
+      if (animateKeyboardTransitions) {
+        // Use shorter animation duration for key repeats to avoid queuing delays
+        final isKeyRepeat = _keyRepeatTimer != null;
+        final effectiveDuration =
+            isKeyRepeat
+                ? Duration(
+                  milliseconds: keyboardAnimationDuration.inMilliseconds ~/ 10,
+                )
+                : keyboardAnimationDuration;
+
+        // Create a target transformation state
+        final targetState = controller.state.copyWith(
+          scale: newScale,
+          offset: newOffset,
+        );
+
+        // Animate to the new state
+        controller.animateTo(
+          targetState: targetState,
+          duration: effectiveDuration,
+          curve: keyboardAnimationCurve,
+          animate: true,
+        );
+      } else {
+        // Update immediately without animation
+        controller.update(newScale: newScale, newOffset: newOffset);
+      }
 
       if (constrainBounds && contentSize != null) {
         final RenderBox? box =
@@ -212,9 +281,56 @@ class KeyboardHandler {
     });
   }
 
+  /// Handles focus changes to reset key states when focus is lost
+  void _handleFocusChange() {
+    if (!focusNode.hasFocus) {
+      // Reset state when focus is lost
+      _resetAllKeyStates();
+    }
+  }
+
+  /// Set up the safety timer that periodically checks for stale key states
+  void _setupSafetyTimer() {
+    _safetyCheckTimer?.cancel();
+    _safetyCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      // Check if any keys are still pressed but the app might not be in focus
+      if (!_hasAppFocus || !focusNode.hasFocus) {
+        _resetAllKeyStates();
+      }
+    });
+  }
+
+  /// Reset the safety timer when activity is detected
+  void _resetSafetyTimer() {
+    _setupSafetyTimer();
+  }
+
+  /// Reset all key states and cancel timers
+  void _resetAllKeyStates() {
+    if (_pressedKeys.isNotEmpty) {
+      _pressedKeys.clear();
+      _keyRepeatTimer?.cancel();
+      _keyRepeatInitialDelayTimer?.cancel();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Update app focus state
+    _hasAppFocus = state == AppLifecycleState.resumed;
+
+    if (!_hasAppFocus) {
+      // Reset state when app loses focus
+      _resetAllKeyStates();
+    }
+  }
+
   /// Cleans up resources
   void dispose() {
     _keyRepeatTimer?.cancel();
     _keyRepeatInitialDelayTimer?.cancel();
+    _safetyCheckTimer?.cancel();
+    focusNode.removeListener(_handleFocusChange);
+    WidgetsBinding.instance.removeObserver(this);
   }
 }

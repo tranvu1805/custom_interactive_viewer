@@ -188,7 +188,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     );
   }
 
-  /// Pan the view by the given delta
+  /// Pans the view by the given delta
   Future<void> panBy(
     Offset delta, {
     bool animate = true,
@@ -206,6 +206,68 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     } else {
       updateState(targetState);
     }
+  }
+
+  /// Rotates the view by the given angle in radians
+  Future<void> rotate(
+    double angleRadians, {
+    Offset? focalPoint,
+    bool animate = true,
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    final targetRotation = _state.rotation + angleRadians;
+    TransformationState targetState;
+
+    if (focalPoint != null) {
+      // Keep the focal point in the same position on screen during rotation
+      final Offset beforeRotationOffset = _state.screenToContentPoint(
+        focalPoint,
+      );
+
+      targetState = _state.copyWith(rotation: targetRotation);
+
+      final Offset afterRotationOffset = targetState.screenToContentPoint(
+        focalPoint,
+      );
+      final Offset offsetAdjustment =
+          afterRotationOffset - beforeRotationOffset;
+
+      targetState = targetState.copyWith(
+        offset: _state.offset - offsetAdjustment * targetState.scale,
+      );
+    } else {
+      targetState = _state.copyWith(rotation: targetRotation);
+    }
+
+    if (animate) {
+      await animateTo(
+        targetState: targetState,
+        duration: duration,
+        curve: curve,
+      );
+    } else {
+      updateState(targetState);
+    }
+  }
+
+  /// Rotates the view to the given absolute angle in radians
+  Future<void> rotateTo(
+    double angleRadians, {
+    Offset? focalPoint,
+    bool animate = true,
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    // Calculate how much we need to rotate from current rotation
+    final rotationDelta = angleRadians - _state.rotation;
+    await rotate(
+      rotationDelta,
+      focalPoint: focalPoint,
+      animate: animate,
+      duration: duration,
+      curve: curve,
+    );
   }
 
   /// Convert a point from screen coordinates to content coordinates
@@ -351,19 +413,100 @@ class CustomInteractiveViewerController extends ChangeNotifier {
   }
 
   /// Centers the content within the viewport.
-  Future<void> center(
+  ///
+  /// This method can automatically determine viewport and content sizes if they're
+  /// not explicitly provided, using the size getters registered with the controller.
+  ///
+  /// If not providing explicit sizes, make sure the controller has been properly
+  /// initialized with viewportSizeGetter and contentSizeGetter.
+  Future<void> center({
     Size? contentSize,
-    Size viewportSize, {
+    Size? viewportSize,
     bool animate = true,
     Duration duration = const Duration(milliseconds: 300),
     Curve curve = Curves.easeInOut,
   }) async {
-    if (contentSize == null) return;
+    // Get viewport size from parameter or registered getter
+    final Size? finalViewportSize = viewportSize ?? _getViewportSize?.call();
+    if (finalViewportSize == null) {
+      assert(
+        false,
+        'Cannot center content because viewport size is unknown. '
+        'Provide a viewportSize parameter or set the viewportSizeGetter.',
+      );
+      return;
+    }
+
+    // Get content size from parameter or registered getter
+    final Size? finalContentSize = contentSize ?? _getContentSize?.call();
+    if (finalContentSize == null) {
+      assert(
+        false,
+        'Cannot center content because content size is unknown. '
+        'Provide a contentSize parameter or set the contentSizeGetter.',
+      );
+      return;
+    }
 
     final targetState = TransformationState.centerContent(
-      contentSize,
-      viewportSize,
+      finalContentSize,
+      finalViewportSize,
       _state.scale,
+    );
+
+    if (animate) {
+      await animateTo(
+        targetState: targetState,
+        duration: duration,
+        curve: curve,
+      );
+    } else {
+      updateState(targetState);
+    }
+  }
+
+  /// Centers the view on a specific rectangle within the content.
+  ///
+  /// This method will position the view so that the provided rectangle is centered,
+  /// and optionally apply a specific scale factor.
+  ///
+  /// If [viewportSize] is not provided, it will try to use the registered viewport size getter.
+  /// If [scale] is not provided, the current scale will be maintained.
+  Future<void> centerOnRect(
+    Rect rect, {
+    Size? viewportSize,
+    double? scale,
+    bool animate = true,
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    // Get viewport size from parameter or registered getter
+    final Size? finalViewportSize = viewportSize ?? _getViewportSize?.call();
+    if (finalViewportSize == null) {
+      assert(
+        false,
+        'Cannot center on rect because viewport size is unknown. '
+        'Provide a viewportSize parameter or set the viewportSizeGetter.',
+      );
+      return;
+    }
+
+    // Calculate the center point of the rectangle in content coordinates
+    final Offset rectCenter = rect.center;
+
+    // Determine the target scale
+    final double targetScale = scale ?? _state.scale;
+
+    // Calculate the offset needed to center the rectangle
+    // The offset is in the coordinate system of the content, before any transformations
+    final Offset targetOffset = Offset(
+      (finalViewportSize.width / 2) - (rectCenter.dx * targetScale),
+      (finalViewportSize.height / 2) - (rectCenter.dy * targetScale),
+    );
+
+    final targetState = _state.copyWith(
+      scale: targetScale,
+      offset: targetOffset,
     );
 
     if (animate) {
@@ -401,6 +544,22 @@ class CustomInteractiveViewerController extends ChangeNotifier {
       onEvent?.call(ViewerEvent.transformationEnd);
     }
     notifyListeners();
+  }
+
+  /// Function type for getting the viewport size
+  Size? Function()? _getViewportSize;
+
+  /// Function type for getting the content size
+  Size? Function()? _getContentSize;
+
+  /// Sets the viewport size provider function
+  set viewportSizeGetter(Size? Function()? getter) {
+    _getViewportSize = getter;
+  }
+
+  /// Sets the content size provider function
+  set contentSizeGetter(Size? Function()? getter) {
+    _getContentSize = getter;
   }
 
   @override

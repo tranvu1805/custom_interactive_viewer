@@ -26,6 +26,9 @@ class CustomInteractiveViewer extends StatefulWidget {
   /// The maximum scale factor.
   final double maxScale;
 
+  /// Whether to enable zooming/scaling. When false, all zoom operations are disabled.
+  final bool enableZoom;
+
   /// Whether to enable scaling with Ctrl+scroll.
   final bool enableCtrlScrollToScale;
 
@@ -59,8 +62,22 @@ class CustomInteractiveViewer extends StatefulWidget {
   /// The interval between repeated key actions.
   final Duration keyRepeatInterval;
 
+  /// Whether to animate transitions when using keyboard controls.
+  final bool animateKeyboardTransitions;
+
+  /// Duration of keyboard transition animations.
+  final Duration keyboardAnimationDuration;
+
+  /// Animation curve for keyboard transitions.
+  final Curve keyboardAnimationCurve;
+
   /// Whether to enable fling behavior for smooth scrolling after a quick pan gesture.
   final bool enableFling;
+
+  /// External focus node for keyboard input.
+  /// If provided, this focus node will be used for keyboard events.
+  /// If null, an internal focus node will be created.
+  final FocusNode? focusNode;
 
   /// Creates a [CustomInteractiveViewer].
   ///
@@ -72,6 +89,7 @@ class CustomInteractiveViewer extends StatefulWidget {
     this.contentSize,
     this.minScale = 0.5,
     this.maxScale = 4,
+    this.enableZoom = true,
     this.enableRotation = false,
     this.constrainBounds = false,
 
@@ -84,8 +102,12 @@ class CustomInteractiveViewer extends StatefulWidget {
     this.enableKeyRepeat = true,
     this.keyRepeatInitialDelay = const Duration(milliseconds: 500),
     this.keyRepeatInterval = const Duration(milliseconds: 50),
+    this.animateKeyboardTransitions = true,
+    this.keyboardAnimationDuration = const Duration(milliseconds: 200),
+    this.keyboardAnimationCurve = Curves.easeOutCubic,
     this.enableCtrlScrollToScale = true,
     this.enableFling = true,
+    this.focusNode,
   });
 
   @override
@@ -99,19 +121,24 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
   final GlobalKey _viewportKey = GlobalKey();
 
   /// Focus node for keyboard input.
-  final FocusNode _focusNode = FocusNode();
+  late final FocusNode _focusNode;
 
   /// Handles gesture interactions.
   late GestureHandler _gestureHandler;
 
   /// Handles keyboard interactions.
   late KeyboardHandler _keyboardHandler;
-
   @override
   void initState() {
     super.initState();
+    // Initialize the focus node: use the provided one or create our own
+    _focusNode = widget.focusNode ?? FocusNode();
+
     widget.controller.vsync = this;
     widget.controller.addListener(_onControllerUpdate);
+
+    // Register size getters with the controller
+    _registerControllerSizeGetters();
 
     _initializeHandlers();
 
@@ -123,29 +150,50 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
     });
   }
 
+  /// Register viewport and content size getters with the controller
+  void _registerControllerSizeGetters() {
+    // Register viewport size getter
+    widget.controller.viewportSizeGetter = () {
+      final RenderBox? box =
+          _viewportKey.currentContext?.findRenderObject() as RenderBox?;
+      return box?.size;
+    };
+
+    // Register content size getter if available
+    if (widget.contentSize != null) {
+      widget.controller.contentSizeGetter = () => widget.contentSize;
+    }
+  }
+
   /// Initialize gesture and keyboard handlers
   void _initializeHandlers() {
     _gestureHandler = GestureHandler(
       controller: widget.controller,
       enableRotation: widget.enableRotation,
       constrainBounds: widget.constrainBounds,
-      enableDoubleTapZoom: widget.enableDoubleTapZoom,
+      enableDoubleTapZoom: widget.enableZoom && widget.enableDoubleTapZoom,
       doubleTapZoomFactor: widget.doubleTapZoomFactor,
       contentSize: widget.contentSize,
       viewportKey: _viewportKey,
-      enableCtrlScrollToScale: widget.enableCtrlScrollToScale,
+      enableCtrlScrollToScale:
+          widget.enableZoom && widget.enableCtrlScrollToScale,
       minScale: widget.minScale,
       maxScale: widget.maxScale,
+      enableFling: widget.enableFling,
+      enableZoom: widget.enableZoom,
     );
-
     _keyboardHandler = KeyboardHandler(
       controller: widget.controller,
       keyboardPanDistance: widget.keyboardPanDistance,
       keyboardZoomFactor: widget.keyboardZoomFactor,
       enableKeyboardControls: widget.enableKeyboardControls,
+      enableKeyboardZoom: widget.enableZoom && widget.enableKeyboardControls,
       enableKeyRepeat: widget.enableKeyRepeat,
       keyRepeatInitialDelay: widget.keyRepeatInitialDelay,
       keyRepeatInterval: widget.keyRepeatInterval,
+      animateKeyboardTransitions: widget.animateKeyboardTransitions,
+      keyboardAnimationDuration: widget.keyboardAnimationDuration,
+      keyboardAnimationCurve: widget.keyboardAnimationCurve,
       focusNode: _focusNode,
       constrainBounds: widget.constrainBounds,
       contentSize: widget.contentSize,
@@ -166,12 +214,22 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
   void didUpdateWidget(CustomInteractiveViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    // Update content size getter if content size changes
+    if (oldWidget.contentSize != widget.contentSize) {
+      if (widget.contentSize != null) {
+        widget.controller.contentSizeGetter = () => widget.contentSize!;
+      } else {
+        widget.controller.contentSizeGetter = null;
+      }
+    }
+
     // Reinitialize handlers if needed properties change
     if (oldWidget.enableRotation != widget.enableRotation ||
         oldWidget.constrainBounds != widget.constrainBounds ||
         oldWidget.enableDoubleTapZoom != widget.enableDoubleTapZoom ||
         oldWidget.doubleTapZoomFactor != widget.doubleTapZoomFactor ||
         oldWidget.enableCtrlScrollToScale != widget.enableCtrlScrollToScale ||
+        oldWidget.enableFling != widget.enableFling ||
         oldWidget.minScale != widget.minScale ||
         oldWidget.maxScale != widget.maxScale ||
         oldWidget.keyboardPanDistance != widget.keyboardPanDistance ||
@@ -231,8 +289,8 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
     final Size viewportSize = box.size;
 
     await widget.controller.center(
-      widget.contentSize,
-      viewportSize,
+      contentSize: widget.contentSize,
+      viewportSize: viewportSize,
       animate: animate,
       duration: duration,
       curve: curve,
@@ -241,50 +299,67 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
 
   @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: _focusNode,
-      onKeyEvent: _keyboardHandler.handleKeyEvent,
-      child: Listener(
-        onPointerSignal: (PointerSignalEvent event) {
-          if (event is PointerScrollEvent) {
-            _gestureHandler.handlePointerScroll(event, context);
-          }
-        },
-        child: GestureDetector(
-          onScaleStart: _gestureHandler.handleScaleStart,
-          onScaleUpdate: _gestureHandler.handleScaleUpdate,
-          onScaleEnd:
-              widget.enableFling ? _gestureHandler.handleScaleEnd : null,
-          onDoubleTapDown:
-              widget.enableDoubleTapZoom
-                  ? _gestureHandler.handleDoubleTapDown
-                  : null,
-          onDoubleTap:
-              widget.enableDoubleTapZoom
-                  ? _gestureHandler.handleDoubleTap
-                  : null,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Container(
-                color: Colors.transparent,
-                child: ClipRRect(
-                  child: OverflowBox(
-                    key: _viewportKey,
-                    maxWidth: double.infinity,
-                    maxHeight: double.infinity,
-                    alignment: Alignment.topLeft,
-                    child: Transform(
+    return FocusTraversalGroup(
+      policy: _NoArrowTraversalPolicy(),
+      child: KeyboardListener(
+        focusNode: _focusNode,
+        onKeyEvent: _keyboardHandler.handleKeyEvent,
+        child: Listener(
+          onPointerSignal: (PointerSignalEvent event) {
+            if (event is PointerScrollEvent) {
+              _gestureHandler.handlePointerScroll(event, context);
+            }
+          },
+          child: GestureDetector(
+            onScaleStart: _gestureHandler.handleScaleStart,
+            onScaleUpdate: _gestureHandler.handleScaleUpdate,
+            onScaleEnd:
+                widget.enableFling ? _gestureHandler.handleScaleEnd : null,
+            onDoubleTapDown:
+                widget.enableDoubleTapZoom
+                    ? _gestureHandler.handleDoubleTapDown
+                    : null,
+            onDoubleTap:
+                widget.enableDoubleTapZoom
+                    ? _gestureHandler.handleDoubleTap
+                    : null,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Container(
+                  color: Colors.transparent,
+                  child: ClipRRect(
+                    child: OverflowBox(
+                      key: _viewportKey,
+                      maxWidth: double.infinity,
+                      maxHeight: double.infinity,
                       alignment: Alignment.topLeft,
-                      transform: widget.controller.transformationMatrix,
-                      child: widget.child,
+                      child: Transform(
+                        alignment: Alignment.topLeft,
+                        transform: widget.controller.transformationMatrix,
+                        child: widget.child,
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+class _NoArrowTraversalPolicy extends WidgetOrderTraversalPolicy {
+  @override
+  bool inDirection(FocusNode currentNode, TraversalDirection direction) {
+    // Block arrow key focus movement
+    if (direction == TraversalDirection.left ||
+        direction == TraversalDirection.right ||
+        direction == TraversalDirection.up ||
+        direction == TraversalDirection.down) {
+      return false;
+    }
+    return super.inDirection(currentNode, direction);
   }
 }

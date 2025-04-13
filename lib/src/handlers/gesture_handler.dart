@@ -18,6 +18,9 @@ class GestureHandler {
   /// Whether fling behavior is enabled
   final bool enableFling;
 
+  /// Whether zooming is enabled at all
+  final bool enableZoom;
+
   /// Whether double-tap zoom is enabled
   final bool enableDoubleTapZoom;
 
@@ -73,6 +76,7 @@ class GestureHandler {
     required this.minScale,
     required this.maxScale,
     this.enableFling = true,
+    required this.enableZoom,
   });
 
   /// Sets the current Ctrl key state
@@ -89,9 +93,12 @@ class GestureHandler {
 
   /// Handles updates to a scale gesture
   void handleScaleUpdate(ScaleUpdateDetails details) {
-    // Calculate updated scale with optional clamping
-    double newScale = _lastScale * details.scale;
-    newScale = newScale.clamp(minScale, maxScale);
+    // Calculate scale if zoom is enabled, otherwise keep current scale
+    double? newScale;
+    if (enableZoom && details.scale != 1.0) {
+      newScale = _lastScale * details.scale;
+      newScale = newScale.clamp(minScale, maxScale);
+    }
 
     final Offset focalDiff = details.focalPoint - _lastFocalPoint;
 
@@ -101,7 +108,7 @@ class GestureHandler {
       newRotation = _lastRotation + details.rotation;
     }
     controller.update(
-      newScale: newScale,
+      newScale: newScale, // Will be null if zoom is disabled
       newOffset: controller.offset + focalDiff,
       newRotation: newRotation,
     );
