@@ -108,7 +108,51 @@ class CustomInteractiveViewerController extends ChangeNotifier {
   /// Gets the current transformation matrix
   Matrix4 get transformationMatrix => _state.toMatrix4();
 
-  /// Zoom in by the given factor
+  /// Zooms the view by the given factor, keeping the focal point visually fixed.
+  ///
+  /// Positive factor values zoom in, negative values zoom out.
+  /// For example:
+  /// - factor: 0.2 - zooms in by 20%
+  /// - factor: -0.2 - zooms out by 20%
+  /// - factor: 1.0 - doubles the current scale
+  /// - factor: -0.5 - reduces the scale by half
+  Future<void> zoom({
+    required double factor,
+    Offset? focalPoint,
+    bool animate = true,
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    final double absScaleFactor = 1.0 + factor.abs();
+    final double targetScale =
+        factor >= 0
+            ? _state.scale * absScaleFactor
+            : _state.scale / absScaleFactor;
+
+    TransformationState targetState;
+
+    if (focalPoint != null) {
+      // Convert the screen focal point to content coordinates before scaling
+      final Offset contentFocalBefore = _state.screenToContentPoint(focalPoint);
+      // Apply the new scale and adjust offset so the focal point remains fixed
+      targetState = _state.copyWith(
+        scale: targetScale,
+        offset: focalPoint - contentFocalBefore * targetScale,
+      );
+    } else {
+      targetState = _state.copyWith(scale: targetScale);
+    }
+
+    await animateTo(
+      targetState: targetState,
+      duration: duration,
+      curve: curve,
+      animate: animate,
+    );
+  }
+
+  /// Zoom in by the given factor, keeping the focal point visually fixed.
+  @Deprecated('Use zoom(factor: 0.2) instead')
   Future<void> zoomIn({
     double factor = 1.2,
     Offset? focalPoint,
@@ -116,39 +160,21 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     Duration duration = const Duration(milliseconds: 300),
     Curve curve = Curves.easeInOut,
   }) async {
-    final targetScale = _state.scale * factor;
-    TransformationState targetState;
+    // Calculate equivalent positive factor for the new zoom method
+    // For a factor of 1.2, we need (1.2-1.0) = 0.2
+    final double positiveFactor = factor - 1.0;
 
-    if (focalPoint != null) {
-      // Keep the focal point in the same position on screen during zoom
-      final Offset beforeScaleOffset = (_state.screenToContentPoint(
-        focalPoint,
-      ));
-
-      targetState = _state.copyWith(scale: targetScale);
-
-      final Offset afterScaleOffset = (targetState.screenToContentPoint(
-        focalPoint,
-      ));
-      final Offset offsetAdjustment =
-          (afterScaleOffset - beforeScaleOffset) * targetScale;
-
-      targetState = targetState.copyWith(
-        offset: _state.offset - offsetAdjustment,
-      );
-    } else {
-      targetState = _state.copyWith(scale: targetScale);
-    }
-
-    await animateTo(
-      targetState: targetState,
+    await zoom(
+      factor: positiveFactor,
+      focalPoint: focalPoint,
+      animate: animate,
       duration: duration,
       curve: curve,
-      animate: animate,
     );
   }
 
-  /// Zoom out by the given factor
+  /// Zoom out by the given factor, keeping the focal point visually fixed.
+  @Deprecated('Use zoom(factor: -0.2) instead')
   Future<void> zoomOut({
     double factor = 1.2,
     Offset? focalPoint,
@@ -156,46 +182,31 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     Duration duration = const Duration(milliseconds: 300),
     Curve curve = Curves.easeInOut,
   }) async {
-    final targetScale = _state.scale / factor;
-    TransformationState targetState;
+    // Calculate equivalent negative factor for the new zoom method
+    // For zooming out by factor 1.2, we need -(1.2-1.0) = -0.2
+    final double negativeFactor = -(factor - 1.0);
 
-    if (focalPoint != null) {
-      // Keep the focal point in the same position on screen during zoom
-      final Offset beforeScaleOffset = (_state.screenToContentPoint(
-        focalPoint,
-      ));
-
-      targetState = _state.copyWith(scale: targetScale);
-
-      final Offset afterScaleOffset = (targetState.screenToContentPoint(
-        focalPoint,
-      ));
-      final Offset offsetAdjustment =
-          (afterScaleOffset - beforeScaleOffset) * targetScale;
-
-      targetState = targetState.copyWith(
-        offset: _state.offset - offsetAdjustment,
-      );
-    } else {
-      targetState = _state.copyWith(scale: targetScale);
-    }
-
-    await animateTo(
-      targetState: targetState,
+    await zoom(
+      factor: negativeFactor,
+      focalPoint: focalPoint,
+      animate: animate,
       duration: duration,
       curve: curve,
-      animate: animate,
     );
   }
 
-  /// Pans the view by the given delta
-  Future<void> panBy(
-    Offset delta, {
+  /// Pans the view by the given offset
+  ///
+  /// The offset specifies how much the view should move. Positive x values
+  /// move the view to the right, negative to the left. Positive y values move
+  /// the view down, negative up.
+  Future<void> pan(
+    Offset offset, {
     bool animate = true,
     Duration duration = const Duration(milliseconds: 300),
     Curve curve = Curves.easeInOut,
   }) async {
-    final targetState = _state.copyWith(offset: _state.offset + delta);
+    final targetState = _state.copyWith(offset: _state.offset + offset);
 
     if (animate) {
       await animateTo(
@@ -206,6 +217,17 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     } else {
       updateState(targetState);
     }
+  }
+
+  /// Pans the view by the given delta
+  @Deprecated('Use pan(offset: delta) instead')
+  Future<void> panBy(
+    Offset delta, {
+    bool animate = true,
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    await pan(delta, animate: animate, duration: duration, curve: curve);
   }
 
   /// Rotates the view by the given angle in radians

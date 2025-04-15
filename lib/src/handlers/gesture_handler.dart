@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:custom_interactive_viewer/src/controller/interactive_controller.dart';
@@ -215,26 +216,36 @@ class GestureHandler {
   }
 
   /// Handles double tap for zoom
-  void handleDoubleTap() {
+  void handleDoubleTap(BuildContext context) async {
     if (!enableDoubleTapZoom || _doubleTapPosition == null) return;
 
-    final RenderBox? box =
-        viewportKey.currentContext?.findRenderObject() as RenderBox?;
+    // Use viewportKey to get the RenderBox instead of Overlay
+    final RenderBox? box = context.findRenderObject() as RenderBox?;
     if (box == null) return;
 
-    final Offset localPosition = box.globalToLocal(_doubleTapPosition!);
+    // Always use the local position where the user pressed as the zoom center
+    final Offset localFocal = box.globalToLocal(_doubleTapPosition!);
 
-    // Calculate focal point for zoom
-    if (controller.scale > (minScale + maxScale) / 2) {
-      // If we're zoomed in, zoom out to minimum
-      controller.zoomOut(
-        factor: controller.scale / minScale,
-        focalPoint: localPosition,
+    final double currentScale = controller.state.scale;
+    final double targetScale =
+        (currentScale < doubleTapZoomFactor) ? doubleTapZoomFactor : 1.0;
+
+    if (targetScale > currentScale) {
+      await controller.zoomIn(
+        factor: targetScale / currentScale,
+        focalPoint: localFocal,
+        animate: true,
       );
     } else {
-      // Otherwise zoom in by the zoom factor
-      controller.zoomIn(factor: doubleTapZoomFactor, focalPoint: localPosition);
+      await controller.zoomOut(
+        factor: currentScale / targetScale,
+        focalPoint: localFocal,
+        animate: true,
+      );
     }
+
+    _doubleTapPosition = null; // Reset after handling
+    _applyConstraints();
   }
 
   /// Handles pointer scroll events

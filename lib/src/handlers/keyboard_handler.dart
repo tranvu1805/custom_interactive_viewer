@@ -17,6 +17,11 @@ class KeyboardHandler with WidgetsBindingObserver {
   /// Whether keyboard controls are enabled
   final bool enableKeyboardControls;
 
+  /// Whether to invert the direction of arrow keys
+  /// If true, pressing left moves view left
+  /// If false, pressing left moves content right
+  final bool invertArrowKeyDirection;
+
   /// Whether key repeat is enabled
   final bool enableKeyRepeat;
 
@@ -90,6 +95,7 @@ class KeyboardHandler with WidgetsBindingObserver {
     required this.minScale,
     required this.maxScale,
     required this.enableKeyboardZoom,
+    this.invertArrowKeyDirection = false,
   }) {
     // Register as an observer to detect app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
@@ -186,6 +192,7 @@ class KeyboardHandler with WidgetsBindingObserver {
         actionPerformed = true;
       } else if ((_pressedKeys.contains(LogicalKeyboardKey.equal) &&
               HardwareKeyboard.instance.isShiftPressed) ||
+          _pressedKeys.contains(LogicalKeyboardKey.add) ||
           _pressedKeys.contains(LogicalKeyboardKey.numpadAdd)) {
         newScale = (controller.scale * keyboardZoomFactor).clamp(
           minScale,
@@ -206,7 +213,7 @@ class KeyboardHandler with WidgetsBindingObserver {
     if (actionPerformed) {
       if (animateKeyboardTransitions) {
         // Use shorter animation duration for key repeats to avoid queuing delays
-        final isKeyRepeat = _keyRepeatTimer != null;
+        final isKeyRepeat = _keyRepeatTimer?.isActive ?? false;
         final effectiveDuration =
             isKeyRepeat
                 ? Duration(
@@ -246,17 +253,20 @@ class KeyboardHandler with WidgetsBindingObserver {
   Offset _calculatePanDeltaFromKeys() {
     double dx = 0, dy = 0;
 
+    // Direction multiplier based on the invertArrowKeyDirection setting
+    final int directionMultiplier = invertArrowKeyDirection ? -1 : 1;
+
     if (_pressedKeys.contains(LogicalKeyboardKey.arrowLeft)) {
-      dx -= keyboardPanDistance;
+      dx += keyboardPanDistance * directionMultiplier;
     }
     if (_pressedKeys.contains(LogicalKeyboardKey.arrowRight)) {
-      dx += keyboardPanDistance;
+      dx -= keyboardPanDistance * directionMultiplier;
     }
     if (_pressedKeys.contains(LogicalKeyboardKey.arrowUp)) {
-      dy -= keyboardPanDistance;
+      dy += keyboardPanDistance * directionMultiplier;
     }
     if (_pressedKeys.contains(LogicalKeyboardKey.arrowDown)) {
-      dy += keyboardPanDistance;
+      dy -= keyboardPanDistance * directionMultiplier;
     }
 
     return Offset(dx, dy);

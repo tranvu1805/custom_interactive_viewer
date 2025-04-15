@@ -1,3 +1,18 @@
+## 0.0.4 - 2025-04-15
+
+### Added
+- When the viewer is tapped, it's in focus, allowing to directly use the keyboard to control it (arrows, page up/down, home/end). Previous focusing was done by navigating to the widget with the tab or arrow keys.
+  Note: You can use the focus node to know when it's in focus & when not and request focus programmatically, check the [org_chart](https://pub.dev/packages/org_chart) example for more details.
+- Added invertArrowKeyDirection property to the controller, which allows you to invert the arrow key direction.
+
+### Fixed
+- Fixed double tap to zoom issue (zooming center was not correct)
+- Fixed keyboard navigation animation on key repeat
+
+### Changed
+- `zoomIn` - `zoomOut` - `panBy` are deprecated, use `zoom` and `pan` instead.
+
+
 ## 0.0.3 - 2025-04-13
 
 ### Added

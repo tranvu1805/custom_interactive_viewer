@@ -79,6 +79,11 @@ class CustomInteractiveViewer extends StatefulWidget {
   /// If null, an internal focus node will be created.
   final FocusNode? focusNode;
 
+  /// Whether to invert the direction of arrow keys.
+  /// If true, pressing left moves view left.
+  /// If false, pressing left moves content right.
+  final bool invertArrowKeyDirection;
+
   /// Creates a [CustomInteractiveViewer].
   ///
   /// The [child] and [controller] parameters are required.
@@ -108,6 +113,7 @@ class CustomInteractiveViewer extends StatefulWidget {
     this.enableCtrlScrollToScale = true,
     this.enableFling = true,
     this.focusNode,
+    this.invertArrowKeyDirection = false,
   });
 
   @override
@@ -200,6 +206,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
       viewportKey: _viewportKey,
       minScale: widget.minScale,
       maxScale: widget.maxScale,
+      invertArrowKeyDirection: widget.invertArrowKeyDirection,
     );
   }
 
@@ -321,8 +328,13 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
                     : null,
             onDoubleTap:
                 widget.enableDoubleTapZoom
-                    ? _gestureHandler.handleDoubleTap
+                    ? () => _gestureHandler.handleDoubleTap(context)
                     : null,
+            onTap: () {
+              if (!_focusNode.hasFocus) {
+                _focusNode.requestFocus();
+              }
+            },
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return Container(
