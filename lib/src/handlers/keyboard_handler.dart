@@ -183,30 +183,64 @@ class KeyboardHandler with WidgetsBindingObserver {
 
     // Process zoom keys
     if (enableKeyboardZoom) {
-      if (_pressedKeys.contains(LogicalKeyboardKey.minus) ||
-          _pressedKeys.contains(LogicalKeyboardKey.numpadSubtract)) {
-        newScale = (controller.scale / keyboardZoomFactor).clamp(
-          minScale,
-          maxScale,
+      // Get the viewport size for centered zooming
+      final RenderBox? box =
+          viewportKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box != null &&
+          (_pressedKeys.contains(LogicalKeyboardKey.minus) ||
+              _pressedKeys.contains(LogicalKeyboardKey.numpadSubtract) ||
+              (_pressedKeys.contains(LogicalKeyboardKey.equal) &&
+                  HardwareKeyboard.instance.isShiftPressed) ||
+              _pressedKeys.contains(LogicalKeyboardKey.add) ||
+              _pressedKeys.contains(LogicalKeyboardKey.numpadAdd))) {
+        // Get the center of the viewport as the focal point
+        final Size viewportSize = box.size;
+        final Offset center = Offset(
+          viewportSize.width / 2,
+          viewportSize.height / 2,
         );
-        actionPerformed = true;
-      } else if ((_pressedKeys.contains(LogicalKeyboardKey.equal) &&
-              HardwareKeyboard.instance.isShiftPressed) ||
-          _pressedKeys.contains(LogicalKeyboardKey.add) ||
-          _pressedKeys.contains(LogicalKeyboardKey.numpadAdd)) {
-        newScale = (controller.scale * keyboardZoomFactor).clamp(
-          minScale,
-          maxScale,
-        );
-        actionPerformed = true;
+
+        // Calculate the new scale factor
+        final double currentScale = controller.scale;
+        double targetScale = currentScale;
+
+        if (_pressedKeys.contains(LogicalKeyboardKey.minus) ||
+            _pressedKeys.contains(LogicalKeyboardKey.numpadSubtract)) {
+          targetScale = (currentScale / keyboardZoomFactor).clamp(
+            minScale,
+            maxScale,
+          );
+        } else if ((_pressedKeys.contains(LogicalKeyboardKey.equal) &&
+                HardwareKeyboard.instance.isShiftPressed) ||
+            _pressedKeys.contains(LogicalKeyboardKey.add) ||
+            _pressedKeys.contains(LogicalKeyboardKey.numpadAdd)) {
+          targetScale = (currentScale * keyboardZoomFactor).clamp(
+            minScale,
+            maxScale,
+          );
+        }
+
+        if (targetScale != currentScale) {
+          // Get the center point in content coordinates before scaling
+          final Offset contentCenter = controller.state.screenToContentPoint(
+            center,
+          );
+
+          // Calculate the new offset to keep the center point fixed during zoom
+          newOffset = center - (contentCenter * targetScale);
+          newScale = targetScale;
+          actionPerformed = true;
+        }
       }
     }
 
-    // Process arrow keys for panning
-    final Offset panDelta = _calculatePanDeltaFromKeys();
-    if (panDelta != Offset.zero) {
-      newOffset = controller.offset + panDelta;
-      actionPerformed = true;
+    // Process arrow keys for panning if no zoom action was performed
+    if (!actionPerformed) {
+      final Offset panDelta = _calculatePanDeltaFromKeys();
+      if (panDelta != Offset.zero) {
+        newOffset = controller.offset + panDelta;
+        actionPerformed = true;
+      }
     }
 
     // Apply actions if needed

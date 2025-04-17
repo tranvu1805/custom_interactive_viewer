@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
@@ -94,28 +95,82 @@ class GestureHandler {
 
   /// Handles updates to a scale gesture
   void handleScaleUpdate(ScaleUpdateDetails details) {
-    // Calculate scale if zoom is enabled, otherwise keep current scale
+    // Get the render box to convert global position to local
+    final RenderBox? box =
+        viewportKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    // Convert focal point from global to local coordinates
+    final Offset localFocalPoint = box.globalToLocal(details.focalPoint);
+
+    // Handle scale updates
     double? newScale;
     if (enableZoom && details.scale != 1.0) {
       newScale = _lastScale * details.scale;
       newScale = newScale.clamp(minScale, maxScale);
     }
 
-    final Offset focalDiff = details.focalPoint - _lastFocalPoint;
-
-    // Handle rotation if enabled
+    // Handle rotation updates
     double? newRotation;
     if (enableRotation && details.pointerCount >= 2) {
       newRotation = _lastRotation + details.rotation;
     }
-    controller.update(
-      newScale: newScale, // Will be null if zoom is disabled
-      newOffset: controller.offset + focalDiff,
-      newRotation: newRotation,
-    );
+
+    // For scale or rotation changes, we need to preserve the focal point position
+    if ((newScale != null && newScale != controller.scale) ||
+        (newRotation != null && newRotation != controller.rotation)) {
+      // First get the position of the focal point RELATIVE TO THE CONTENT ORIGIN
+      // before any transformations
+      final Offset focalPointBeforeTransform =
+          (localFocalPoint - controller.offset) / controller.scale;
+
+      // Calculate the new offset needed to keep the focal point visually fixed
+      Offset newOffset = controller.offset;
+
+      if (newScale != null && newScale != controller.scale) {
+        // The focal point should stay at the same visual location
+        // To achieve this, we need to adjust the offset based on the scale change
+        newOffset = localFocalPoint - (focalPointBeforeTransform * newScale);
+      }
+
+      if (newRotation != null &&
+          newRotation != controller.rotation &&
+          enableRotation) {
+        // For rotation, we need more complex calculations to keep the focal point fixed
+        final double rotationDelta = newRotation - controller.rotation;
+
+        // Get the vector from content origin to focal point (in content coordinates)
+        final Offset contentVector = focalPointBeforeTransform;
+
+        // Calculate where this point would be after rotation (still in content coordinates)
+        final double cosTheta = math.cos(rotationDelta);
+        final double sinTheta = math.sin(rotationDelta);
+        final Offset rotatedContentVector = Offset(
+          contentVector.dx * cosTheta - contentVector.dy * sinTheta,
+          contentVector.dx * sinTheta + contentVector.dy * cosTheta,
+        );
+
+        // Scale the rotated vector
+        final Offset scaledRotatedVector =
+            rotatedContentVector * (newScale ?? controller.scale);
+
+        // Calculate the new offset that keeps the focal point visually fixed
+        newOffset = localFocalPoint - scaledRotatedVector;
+      }
+
+      // Update the controller with all new values
+      controller.update(
+        newScale: newScale,
+        newRotation: newRotation,
+        newOffset: newOffset,
+      );
+    } else {
+      // For simple panning without scale/rotation changes
+      final Offset focalDiff = details.focalPoint - _lastFocalPoint;
+      controller.update(newOffset: controller.offset + focalDiff);
+    }
 
     _applyConstraints();
-
     _lastFocalPoint = details.focalPoint;
   }
 
