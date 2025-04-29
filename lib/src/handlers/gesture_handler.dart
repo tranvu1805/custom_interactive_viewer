@@ -285,19 +285,21 @@ class GestureHandler {
     final double targetScale =
         (currentScale < doubleTapZoomFactor) ? doubleTapZoomFactor : 1.0;
 
+    // Calculate the zoom factor for the new zoom method
+    final double factor;
     if (targetScale > currentScale) {
-      await controller.zoomIn(
-        factor: targetScale / currentScale,
-        focalPoint: localFocal,
-        animate: true,
-      );
+      // Zoom in: calculate positive factor
+      factor = (targetScale / currentScale) - 1.0;
     } else {
-      await controller.zoomOut(
-        factor: currentScale / targetScale,
-        focalPoint: localFocal,
-        animate: true,
-      );
+      // Zoom out: calculate negative factor
+      factor = -((currentScale / targetScale) - 1.0);
     }
+
+    await controller.zoom(
+      factor: factor,
+      focalPoint: localFocal,
+      animate: true,
+    );
 
     _doubleTapPosition = null; // Reset after handling
     _applyConstraints();
@@ -319,21 +321,11 @@ class GestureHandler {
     if (box == null) return;
 
     final Offset localPosition = box.globalToLocal(event.position);
-
-    // Zoom in or out based on scroll direction
-    if (event.scrollDelta.dy > 0) {
-      controller.zoomOut(
-        factor: 1.05,
-        focalPoint: localPosition,
-        animate: false,
-      );
-    } else {
-      controller.zoomIn(
-        factor: 1.05,
-        focalPoint: localPosition,
-        animate: false,
-      );
-    }
+    controller.zoom(
+      factor: event.scrollDelta.dy > 0 ? 1.05 : 0.95,
+      focalPoint: localPosition,
+      animate: false,
+    );
 
     _applyConstraints();
   }
@@ -341,7 +333,7 @@ class GestureHandler {
   /// Handle normal scroll for panning
   void _handleNormalScroll(PointerScrollEvent event) {
     // Pan using scroll delta
-    controller.panBy(-event.scrollDelta, animate: false);
+    controller.pan(-event.scrollDelta, animate: false);
 
     _applyConstraints();
   }

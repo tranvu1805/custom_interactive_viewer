@@ -15,7 +15,7 @@ class CustomInteractiveViewer extends StatefulWidget {
   final Widget child;
 
   /// The controller that manages the transformation state.
-  final CustomInteractiveViewerController controller;
+  final CustomInteractiveViewerController? controller;
 
   /// The size of the content being displayed. Used for centering and constraints.
   final Size? contentSize;
@@ -123,6 +123,10 @@ class CustomInteractiveViewer extends StatefulWidget {
 /// The state for a [CustomInteractiveViewer].
 class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
     with TickerProviderStateMixin {
+
+  late final CustomInteractiveViewerController controller =
+      widget.controller ?? CustomInteractiveViewerController(vsync: this);
+  
   /// The key for the viewport.
   final GlobalKey _viewportKey = GlobalKey();
 
@@ -140,8 +144,8 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
     // Initialize the focus node: use the provided one or create our own
     _focusNode = widget.focusNode ?? FocusNode();
 
-    widget.controller.vsync = this;
-    widget.controller.addListener(_onControllerUpdate);
+    controller.vsync = this;
+    controller.addListener(_onControllerUpdate);
 
     // Register size getters with the controller
     _registerControllerSizeGetters();
@@ -159,7 +163,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
   /// Register viewport and content size getters with the controller
   void _registerControllerSizeGetters() {
     // Register viewport size getter
-    widget.controller.viewportSizeGetter = () {
+    controller.viewportSizeGetter = () {
       final RenderBox? box =
           _viewportKey.currentContext?.findRenderObject() as RenderBox?;
       return box?.size;
@@ -167,14 +171,14 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
 
     // Register content size getter if available
     if (widget.contentSize != null) {
-      widget.controller.contentSizeGetter = () => widget.contentSize;
+      controller.contentSizeGetter = () => widget.contentSize;
     }
   }
 
   /// Initialize gesture and keyboard handlers
   void _initializeHandlers() {
     _gestureHandler = GestureHandler(
-      controller: widget.controller,
+      controller: controller,
       enableRotation: widget.enableRotation,
       constrainBounds: widget.constrainBounds,
       enableDoubleTapZoom: widget.enableZoom && widget.enableDoubleTapZoom,
@@ -189,7 +193,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
       enableZoom: widget.enableZoom,
     );
     _keyboardHandler = KeyboardHandler(
-      controller: widget.controller,
+      controller: controller,
       keyboardPanDistance: widget.keyboardPanDistance,
       keyboardZoomFactor: widget.keyboardZoomFactor,
       enableKeyboardControls: widget.enableKeyboardControls,
@@ -224,9 +228,9 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
     // Update content size getter if content size changes
     if (oldWidget.contentSize != widget.contentSize) {
       if (widget.contentSize != null) {
-        widget.controller.contentSizeGetter = () => widget.contentSize!;
+        controller.contentSizeGetter = () => widget.contentSize!;
       } else {
-        widget.controller.contentSizeGetter = null;
+        controller.contentSizeGetter = null;
       }
     }
 
@@ -251,12 +255,15 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onControllerUpdate);
+    controller.removeListener(_onControllerUpdate);
     _focusNode.dispose();
     _keyboardHandler.dispose();
+    if(widget.controller == null) {
+      controller.dispose();
+    }
 
-    // Remove key listener
     HardwareKeyboard.instance.removeHandler(_handleHardwareKeyChange);
+    // Remove key listener
 
     super.dispose();
   }
@@ -295,7 +302,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
 
     final Size viewportSize = box.size;
 
-    await widget.controller.center(
+    await controller.center(
       contentSize: widget.contentSize,
       viewportSize: viewportSize,
       animate: animate,
@@ -347,7 +354,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
                       alignment: Alignment.topLeft,
                       child: Transform(
                         alignment: Alignment.topLeft,
-                        transform: widget.controller.transformationMatrix,
+                        transform: controller.transformationMatrix,
                         child: widget.child,
                       ),
                     ),

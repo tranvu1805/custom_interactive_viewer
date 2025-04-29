@@ -1,3 +1,9 @@
+## 0.0.6 - 2025-04-30
+
+### Fixed
+- Updated double-tap zoom functionality to use the new `zoom` method instead of deprecated `zoomIn` and `zoomOut` methods
+- Improved code maintainability by removing usage of deprecated methods in gesture handling
+- Imporoved dispose flow.
 ## 0.0.5 - 2025-04-18
 ### Fixed
 - Zoom/Rotate center
