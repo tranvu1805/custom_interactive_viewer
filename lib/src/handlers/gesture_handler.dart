@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:custom_interactive_viewer/src/controller/interactive_controller.dart';
+import 'package:custom_interactive_viewer/src/enums/scroll_mode.dart';
 
 /// A handler for gesture interactions with [CustomInteractiveViewer]
 class GestureHandler {
@@ -44,6 +45,9 @@ class GestureHandler {
   /// Maximum allowed scale
   final double maxScale;
 
+  /// The scroll mode that determines allowed scroll directions
+  final ScrollMode scrollMode;
+
   /// Stores the last focal point during scale gesture
   Offset _lastFocalPoint = Offset.zero;
 
@@ -79,6 +83,7 @@ class GestureHandler {
     required this.maxScale,
     this.enableFling = true,
     required this.enableZoom,
+    this.scrollMode = ScrollMode.both,
   });
 
   /// Gets the current Ctrl key state
@@ -170,7 +175,8 @@ class GestureHandler {
     } else {
       // For simple panning without scale/rotation changes
       final Offset focalDiff = details.focalPoint - _lastFocalPoint;
-      controller.update(newOffset: controller.offset + focalDiff);
+      final Offset constrainedDiff = _constrainPanByScrollMode(focalDiff);
+      controller.update(newOffset: controller.offset + constrainedDiff);
     }
 
     _applyConstraints();
@@ -234,9 +240,10 @@ class GestureHandler {
 
       // Apply the movement in the direction of the fling
       final Offset movement = direction * delta;
+      final Offset constrainedMovement = _constrainPanByScrollMode(movement);
 
       // Update the controller position
-      controller.update(newOffset: controller.offset + movement);
+      controller.update(newOffset: controller.offset + constrainedMovement);
 
       _applyConstraints();
 
@@ -340,8 +347,9 @@ class GestureHandler {
 
   /// Handle normal scroll for panning
   void _handleNormalScroll(PointerScrollEvent event) {
-    // Pan using scroll delta
-    controller.pan(-event.scrollDelta, animate: false);
+    // Pan using scroll delta, constrained by scroll mode
+    final Offset constrainedDelta = _constrainPanByScrollMode(-event.scrollDelta);
+    controller.pan(constrainedDelta, animate: false);
 
     _applyConstraints();
   }
@@ -354,6 +362,20 @@ class GestureHandler {
       if (box != null) {
         controller.constrainToBounds(contentSize!, box.size);
       }
+    }
+  }
+
+  /// Constrains pan movement based on the scroll mode
+  Offset _constrainPanByScrollMode(Offset delta) {
+    switch (scrollMode) {
+      case ScrollMode.horizontal:
+        return Offset(delta.dx, 0);
+      case ScrollMode.vertical:
+        return Offset(0, delta.dy);
+      case ScrollMode.none:
+        return Offset.zero;
+      case ScrollMode.both:
+        return delta;
     }
   }
 }

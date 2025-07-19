@@ -120,10 +120,14 @@ class _RotationTestPageState extends State<RotationTestPage> {
               child: CustomInteractiveViewer(
                 controller: _controller,
                 contentSize: const Size(400, 400),
-                constrainBounds: true,
-                enableRotation: true,
-                enableKeyboardControls: true,
-                keyboardPanDistance: 20,
+                interactionConfig: const InteractionConfig(
+                  constrainBounds: true,
+                  enableRotation: true,
+                ),
+                keyboardConfig: const KeyboardConfig(
+                  enableKeyboardControls: true,
+                  keyboardPanDistance: 20,
+                ),
                 child: Container(
                   width: 400,
                   height: 400,

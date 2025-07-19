@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:custom_interactive_viewer/src/controller/interactive_controller.dart';
+import 'package:custom_interactive_viewer/src/enums/scroll_mode.dart';
 
 /// A handler for keyboard interactions with [CustomInteractiveViewer]
 class KeyboardHandler with WidgetsBindingObserver {
@@ -76,6 +77,9 @@ class KeyboardHandler with WidgetsBindingObserver {
   /// Whether keyboard zoom is enabled
   final bool enableKeyboardZoom;
 
+  /// The scroll mode that determines allowed scroll directions
+  final ScrollMode scrollMode;
+
   /// Creates a keyboard handler
   KeyboardHandler({
     required this.controller,
@@ -96,6 +100,7 @@ class KeyboardHandler with WidgetsBindingObserver {
     required this.maxScale,
     required this.enableKeyboardZoom,
     this.invertArrowKeyDirection = false,
+    this.scrollMode = ScrollMode.both,
   }) {
     // Register as an observer to detect app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
@@ -303,7 +308,17 @@ class KeyboardHandler with WidgetsBindingObserver {
       dy -= keyboardPanDistance * directionMultiplier;
     }
 
-    return Offset(dx, dy);
+    // Constrain pan delta based on scroll mode
+    switch (scrollMode) {
+      case ScrollMode.horizontal:
+        return Offset(dx, 0);
+      case ScrollMode.vertical:
+        return Offset(0, dy);
+      case ScrollMode.none:
+        return Offset.zero;
+      case ScrollMode.both:
+        return Offset(dx, dy);
+    }
   }
 
   /// Setup key repeat timer when a key is pressed

@@ -52,7 +52,9 @@ class _MyHomePageState extends State<MyHomePage> {
         child: CustomInteractiveViewer(
           controller: _controller,
           contentSize: const Size(800, 600),
-          enableCtrlScrollToScale: true,
+          zoomConfig: const ZoomConfig(
+            enableCtrlScrollToScale: true,
+          ),
           child: Container(
             width: 800,
             height: 600,
