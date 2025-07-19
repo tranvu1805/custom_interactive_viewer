@@ -1,3 +1,10 @@
+## 0.0.7 - 2025-07-19
+
+### Fixed
+- Fixed `constrainToViewport` method to properly handle rotation when constraining bounds during keyboard navigation
+- Fixed `centerOnRect` method to correctly center on rectangles when content is rotated
+- Both fixes now properly account for rotation transformations when calculating offsets and bounds
+
 ## 0.0.6 - 2025-04-30
 
 ### Fixed

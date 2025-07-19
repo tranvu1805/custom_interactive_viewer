@@ -81,6 +81,9 @@ class GestureHandler {
     required this.enableZoom,
   });
 
+  /// Gets the current Ctrl key state
+  bool get isCtrlPressed => _isCtrlPressed;
+
   /// Sets the current Ctrl key state
   set isCtrlPressed(bool value) {
     _isCtrlPressed = value;
@@ -321,8 +324,13 @@ class GestureHandler {
     if (box == null) return;
 
     final Offset localPosition = box.globalToLocal(event.position);
+    
+    // Calculate zoom factor - negative scrollDelta.dy means scroll up (zoom in)
+    // This matches browser behavior: scroll up = zoom in, scroll down = zoom out
+    final double zoomFactor = event.scrollDelta.dy > 0 ? -0.1 : 0.1;
+    
     controller.zoom(
-      factor: event.scrollDelta.dy > 0 ? 1.05 : 0.95,
+      factor: zoomFactor,
       focalPoint: localPosition,
       animate: false,
     );

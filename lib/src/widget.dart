@@ -123,15 +123,14 @@ class CustomInteractiveViewer extends StatefulWidget {
 /// The state for a [CustomInteractiveViewer].
 class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
     with TickerProviderStateMixin {
-
   late final CustomInteractiveViewerController controller =
       widget.controller ?? CustomInteractiveViewerController(vsync: this);
-  
+
   /// The key for the viewport.
   final GlobalKey _viewportKey = GlobalKey();
 
   /// Focus node for keyboard input.
-  late final FocusNode _focusNode;
+  late final FocusNode _focusNode = widget.focusNode ?? FocusNode();
 
   /// Handles gesture interactions.
   late GestureHandler _gestureHandler;
@@ -141,9 +140,6 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
   @override
   void initState() {
     super.initState();
-    // Initialize the focus node: use the provided one or create our own
-    _focusNode = widget.focusNode ?? FocusNode();
-
     controller.vsync = this;
     controller.addListener(_onControllerUpdate);
 
@@ -256,11 +252,13 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
   @override
   void dispose() {
     controller.removeListener(_onControllerUpdate);
-    _focusNode.dispose();
-    _keyboardHandler.dispose();
-    if(widget.controller == null) {
+    if (widget.focusNode == null) {
+      _focusNode.dispose();
+    }
+    if (widget.controller == null) {
       controller.dispose();
     }
+    _keyboardHandler.dispose();
 
     HardwareKeyboard.instance.removeHandler(_handleHardwareKeyChange);
     // Remove key listener
@@ -321,7 +319,13 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
         child: Listener(
           onPointerSignal: (PointerSignalEvent event) {
             if (event is PointerScrollEvent) {
-              _gestureHandler.handlePointerScroll(event, context);
+              // On web, prevent default browser zoom behavior when Ctrl is pressed
+              if (_gestureHandler.isCtrlPressed && widget.enableCtrlScrollToScale) {
+                // The event is handled by our zoom logic
+                _gestureHandler.handlePointerScroll(event, context);
+              } else {
+                _gestureHandler.handlePointerScroll(event, context);
+              }
             }
           },
           child: GestureDetector(
