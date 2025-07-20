@@ -1,4 +1,4 @@
-## 0.0.7 - 2025-07-19
+## 0.0.8 - 2025-07-19
 
 ### Fixed
 - Fixed `constrainToViewport` method to properly handle rotation when constraining bounds during keyboard navigation
