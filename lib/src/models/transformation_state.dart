@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'package:custom_interactive_viewer/src/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart';
 
@@ -133,23 +135,44 @@ class TransformationState {
     double newX = offset.dx;
     double newY = offset.dy;
 
-    if (contentSize.width * scale <= viewportSize.width) {
-      // If content is smaller than viewport, center it horizontally
+    // Calculate the bounding box of the rotated content
+    final double absRotation = rotation.abs();
+    final double cosRotation = cos(absRotation);
+    final double sinRotation = sin(absRotation);
+    
+    // Calculate the dimensions of the bounding box that contains the rotated content
+    final double rotatedWidth = (contentSize.width * cosRotation + contentSize.height * sinRotation).abs() * scale;
+    final double rotatedHeight = (contentSize.width * sinRotation + contentSize.height * cosRotation).abs() * scale;
+
+    if (rotatedWidth <= viewportSize.width) {
+      // If rotated content is smaller than viewport, center it horizontally
       newX = (viewportSize.width - contentSize.width * scale) / 2;
     } else {
-      // Otherwise restrict panning to keep content filling the viewport
-      final double minX = viewportSize.width - contentSize.width * scale;
-      final double maxX = 0.0;
+      // Otherwise restrict panning to keep rotated content filling the viewport
+      // Calculate the offset adjustment needed due to rotation
+      final double centerX = contentSize.width * scale / 2;
+      final double centerY = contentSize.height * scale / 2;
+      final double rotatedCenterX = centerX * cosRotation - centerY * sinRotation;
+      final double offsetAdjustmentX = centerX - rotatedCenterX;
+      
+      final double minX = viewportSize.width - rotatedWidth + offsetAdjustmentX;
+      final double maxX = offsetAdjustmentX;
       newX = newX.clamp(minX, maxX);
     }
 
-    if (contentSize.height * scale <= viewportSize.height) {
-      // If content is smaller than viewport, center it vertically
+    if (rotatedHeight <= viewportSize.height) {
+      // If rotated content is smaller than viewport, center it vertically
       newY = (viewportSize.height - contentSize.height * scale) / 2;
     } else {
-      // Otherwise restrict panning to keep content filling the viewport
-      final double minY = viewportSize.height - contentSize.height * scale;
-      final double maxY = 0.0;
+      // Otherwise restrict panning to keep rotated content filling the viewport
+      // Calculate the offset adjustment needed due to rotation
+      final double centerX = contentSize.width * scale / 2;
+      final double centerY = contentSize.height * scale / 2;
+      final double rotatedCenterY = centerX * sinRotation + centerY * cosRotation;
+      final double offsetAdjustmentY = centerY - rotatedCenterY;
+      
+      final double minY = viewportSize.height - rotatedHeight + offsetAdjustmentY;
+      final double maxY = offsetAdjustmentY;
       newY = newY.clamp(minY, maxY);
     }
 

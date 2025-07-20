@@ -1,3 +1,6 @@
+import 'package:custom_interactive_viewer/src/config/interaction_config.dart';
+import 'package:custom_interactive_viewer/src/config/keyboard_config.dart';
+import 'package:custom_interactive_viewer/src/config/zoom_config.dart';
 import 'package:custom_interactive_viewer/src/controller/interactive_controller.dart';
 import 'package:custom_interactive_viewer/src/handlers/gesture_handler.dart';
 import 'package:custom_interactive_viewer/src/handlers/keyboard_handler.dart';
@@ -20,100 +23,32 @@ class CustomInteractiveViewer extends StatefulWidget {
   /// The size of the content being displayed. Used for centering and constraints.
   final Size? contentSize;
 
-  /// The minimum scale factor.
-  final double minScale;
+  /// Configuration for zoom-related behavior.
+  final ZoomConfig zoomConfig;
 
-  /// The maximum scale factor.
-  final double maxScale;
+  /// Configuration for gesture and interaction behavior.
+  final InteractionConfig interactionConfig;
 
-  /// Whether to enable zooming/scaling. When false, all zoom operations are disabled.
-  final bool enableZoom;
-
-  /// Whether to enable scaling with Ctrl+scroll.
-  final bool enableCtrlScrollToScale;
-
-  /// Whether to enable rotation of the content.
-  final bool enableRotation;
-
-  /// Whether to constrain the content to the widget bounds.
-  final bool constrainBounds;
-
-  /// Whether to enable zooming on double tap.
-  final bool enableDoubleTapZoom;
-
-  /// The factor by which to zoom on double tap.
-  final double doubleTapZoomFactor;
-
-  /// Whether to enable keyboard controls.
-  final bool enableKeyboardControls;
-
-  /// The distance to pan when using keyboard arrow keys.
-  final double keyboardPanDistance;
-
-  /// The factor by which to zoom when using keyboard zoom keys.
-  final double keyboardZoomFactor;
-
-  /// Whether to enable key repeat for keyboard controls.
-  final bool enableKeyRepeat;
-
-  /// The delay before key repeat begins.
-  final Duration keyRepeatInitialDelay;
-
-  /// The interval between repeated key actions.
-  final Duration keyRepeatInterval;
-
-  /// Whether to animate transitions when using keyboard controls.
-  final bool animateKeyboardTransitions;
-
-  /// Duration of keyboard transition animations.
-  final Duration keyboardAnimationDuration;
-
-  /// Animation curve for keyboard transitions.
-  final Curve keyboardAnimationCurve;
-
-  /// Whether to enable fling behavior for smooth scrolling after a quick pan gesture.
-  final bool enableFling;
+  /// Configuration for keyboard controls.
+  final KeyboardConfig keyboardConfig;
 
   /// External focus node for keyboard input.
   /// If provided, this focus node will be used for keyboard events.
   /// If null, an internal focus node will be created.
   final FocusNode? focusNode;
 
-  /// Whether to invert the direction of arrow keys.
-  /// If true, pressing left moves view left.
-  /// If false, pressing left moves content right.
-  final bool invertArrowKeyDirection;
-
   /// Creates a [CustomInteractiveViewer].
   ///
-  /// The [child] and [controller] parameters are required.
+  /// The [child] parameter is required.
   const CustomInteractiveViewer({
     super.key,
     required this.child,
-    required this.controller,
+    this.controller,
     this.contentSize,
-    this.minScale = 0.5,
-    this.maxScale = 4,
-    this.enableZoom = true,
-    this.enableRotation = false,
-    this.constrainBounds = false,
-
-    /// Enabling this may cause a delay in any gesture detector in the child
-    this.enableDoubleTapZoom = false,
-    this.doubleTapZoomFactor = 2.0,
-    this.enableKeyboardControls = true,
-    this.keyboardPanDistance = 20.0,
-    this.keyboardZoomFactor = 1.1,
-    this.enableKeyRepeat = true,
-    this.keyRepeatInitialDelay = const Duration(milliseconds: 500),
-    this.keyRepeatInterval = const Duration(milliseconds: 50),
-    this.animateKeyboardTransitions = true,
-    this.keyboardAnimationDuration = const Duration(milliseconds: 200),
-    this.keyboardAnimationCurve = Curves.easeOutCubic,
-    this.enableCtrlScrollToScale = true,
-    this.enableFling = true,
+    this.zoomConfig = const ZoomConfig(),
+    this.interactionConfig = const InteractionConfig(),
+    this.keyboardConfig = const KeyboardConfig(),
     this.focusNode,
-    this.invertArrowKeyDirection = false,
   });
 
   @override
@@ -123,27 +58,24 @@ class CustomInteractiveViewer extends StatefulWidget {
 /// The state for a [CustomInteractiveViewer].
 class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
     with TickerProviderStateMixin {
-
   late final CustomInteractiveViewerController controller =
       widget.controller ?? CustomInteractiveViewerController(vsync: this);
-  
+
   /// The key for the viewport.
   final GlobalKey _viewportKey = GlobalKey();
 
   /// Focus node for keyboard input.
-  late final FocusNode _focusNode;
+  late final FocusNode _focusNode = widget.focusNode ?? FocusNode();
 
   /// Handles gesture interactions.
   late GestureHandler _gestureHandler;
 
   /// Handles keyboard interactions.
   late KeyboardHandler _keyboardHandler;
+  
   @override
   void initState() {
     super.initState();
-    // Initialize the focus node: use the provided one or create our own
-    _focusNode = widget.focusNode ?? FocusNode();
-
     controller.vsync = this;
     controller.addListener(_onControllerUpdate);
 
@@ -179,38 +111,40 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
   void _initializeHandlers() {
     _gestureHandler = GestureHandler(
       controller: controller,
-      enableRotation: widget.enableRotation,
-      constrainBounds: widget.constrainBounds,
-      enableDoubleTapZoom: widget.enableZoom && widget.enableDoubleTapZoom,
-      doubleTapZoomFactor: widget.doubleTapZoomFactor,
+      enableRotation: widget.interactionConfig.enableRotation,
+      constrainBounds: widget.interactionConfig.constrainBounds,
+      enableDoubleTapZoom: widget.zoomConfig.enableZoom && widget.zoomConfig.enableDoubleTapZoom,
+      doubleTapZoomFactor: widget.zoomConfig.doubleTapZoomFactor,
       contentSize: widget.contentSize,
       viewportKey: _viewportKey,
       enableCtrlScrollToScale:
-          widget.enableZoom && widget.enableCtrlScrollToScale,
-      minScale: widget.minScale,
-      maxScale: widget.maxScale,
-      enableFling: widget.enableFling,
-      enableZoom: widget.enableZoom,
+          widget.zoomConfig.enableZoom && widget.zoomConfig.enableCtrlScrollToScale,
+      minScale: widget.zoomConfig.minScale,
+      maxScale: widget.zoomConfig.maxScale,
+      enableFling: widget.interactionConfig.enableFling,
+      enableZoom: widget.zoomConfig.enableZoom,
+      scrollMode: widget.interactionConfig.scrollMode,
     );
     _keyboardHandler = KeyboardHandler(
       controller: controller,
-      keyboardPanDistance: widget.keyboardPanDistance,
-      keyboardZoomFactor: widget.keyboardZoomFactor,
-      enableKeyboardControls: widget.enableKeyboardControls,
-      enableKeyboardZoom: widget.enableZoom && widget.enableKeyboardControls,
-      enableKeyRepeat: widget.enableKeyRepeat,
-      keyRepeatInitialDelay: widget.keyRepeatInitialDelay,
-      keyRepeatInterval: widget.keyRepeatInterval,
-      animateKeyboardTransitions: widget.animateKeyboardTransitions,
-      keyboardAnimationDuration: widget.keyboardAnimationDuration,
-      keyboardAnimationCurve: widget.keyboardAnimationCurve,
+      keyboardPanDistance: widget.keyboardConfig.keyboardPanDistance,
+      keyboardZoomFactor: widget.keyboardConfig.keyboardZoomFactor,
+      enableKeyboardControls: widget.keyboardConfig.enableKeyboardControls,
+      enableKeyboardZoom: widget.zoomConfig.enableZoom && widget.keyboardConfig.enableKeyboardControls,
+      enableKeyRepeat: widget.keyboardConfig.enableKeyRepeat,
+      keyRepeatInitialDelay: widget.keyboardConfig.keyRepeatInitialDelay,
+      keyRepeatInterval: widget.keyboardConfig.keyRepeatInterval,
+      animateKeyboardTransitions: widget.keyboardConfig.animateKeyboardTransitions,
+      keyboardAnimationDuration: widget.keyboardConfig.keyboardAnimationDuration,
+      keyboardAnimationCurve: widget.keyboardConfig.keyboardAnimationCurve,
       focusNode: _focusNode,
-      constrainBounds: widget.constrainBounds,
+      constrainBounds: widget.interactionConfig.constrainBounds,
       contentSize: widget.contentSize,
       viewportKey: _viewportKey,
-      minScale: widget.minScale,
-      maxScale: widget.maxScale,
-      invertArrowKeyDirection: widget.invertArrowKeyDirection,
+      minScale: widget.zoomConfig.minScale,
+      maxScale: widget.zoomConfig.maxScale,
+      invertArrowKeyDirection: widget.keyboardConfig.invertArrowKeyDirection,
+      scrollMode: widget.interactionConfig.scrollMode,
     );
   }
 
@@ -234,21 +168,10 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
       }
     }
 
-    // Reinitialize handlers if needed properties change
-    if (oldWidget.enableRotation != widget.enableRotation ||
-        oldWidget.constrainBounds != widget.constrainBounds ||
-        oldWidget.enableDoubleTapZoom != widget.enableDoubleTapZoom ||
-        oldWidget.doubleTapZoomFactor != widget.doubleTapZoomFactor ||
-        oldWidget.enableCtrlScrollToScale != widget.enableCtrlScrollToScale ||
-        oldWidget.enableFling != widget.enableFling ||
-        oldWidget.minScale != widget.minScale ||
-        oldWidget.maxScale != widget.maxScale ||
-        oldWidget.keyboardPanDistance != widget.keyboardPanDistance ||
-        oldWidget.keyboardZoomFactor != widget.keyboardZoomFactor ||
-        oldWidget.enableKeyboardControls != widget.enableKeyboardControls ||
-        oldWidget.enableKeyRepeat != widget.enableKeyRepeat ||
-        oldWidget.keyRepeatInitialDelay != widget.keyRepeatInitialDelay ||
-        oldWidget.keyRepeatInterval != widget.keyRepeatInterval) {
+    // Reinitialize handlers if any config changes
+    if (oldWidget.zoomConfig != widget.zoomConfig ||
+        oldWidget.interactionConfig != widget.interactionConfig ||
+        oldWidget.keyboardConfig != widget.keyboardConfig) {
       _initializeHandlers();
     }
   }
@@ -256,11 +179,13 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
   @override
   void dispose() {
     controller.removeListener(_onControllerUpdate);
-    _focusNode.dispose();
-    _keyboardHandler.dispose();
-    if(widget.controller == null) {
+    if (widget.focusNode == null) {
+      _focusNode.dispose();
+    }
+    if (widget.controller == null) {
       controller.dispose();
     }
+    _keyboardHandler.dispose();
 
     HardwareKeyboard.instance.removeHandler(_handleHardwareKeyChange);
     // Remove key listener
@@ -321,20 +246,26 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
         child: Listener(
           onPointerSignal: (PointerSignalEvent event) {
             if (event is PointerScrollEvent) {
-              _gestureHandler.handlePointerScroll(event, context);
+              // On web, prevent default browser zoom behavior when Ctrl is pressed
+              if (_gestureHandler.isCtrlPressed && widget.zoomConfig.enableCtrlScrollToScale) {
+                // The event is handled by our zoom logic
+                _gestureHandler.handlePointerScroll(event, context);
+              } else {
+                _gestureHandler.handlePointerScroll(event, context);
+              }
             }
           },
           child: GestureDetector(
             onScaleStart: _gestureHandler.handleScaleStart,
             onScaleUpdate: _gestureHandler.handleScaleUpdate,
             onScaleEnd:
-                widget.enableFling ? _gestureHandler.handleScaleEnd : null,
+                widget.interactionConfig.enableFling ? _gestureHandler.handleScaleEnd : null,
             onDoubleTapDown:
-                widget.enableDoubleTapZoom
+                widget.zoomConfig.enableDoubleTapZoom
                     ? _gestureHandler.handleDoubleTapDown
                     : null,
             onDoubleTap:
-                widget.enableDoubleTapZoom
+                widget.zoomConfig.enableDoubleTapZoom
                     ? () => _gestureHandler.handleDoubleTap(context)
                     : null,
             onTap: () {
@@ -349,8 +280,8 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
                   child: ClipRRect(
                     child: OverflowBox(
                       key: _viewportKey,
-                      maxWidth: double.infinity,
-                      maxHeight: double.infinity,
+                      maxWidth: 1 / 0,
+                      maxHeight: 1 / 0,
                       alignment: Alignment.topLeft,
                       child: Transform(
                         alignment: Alignment.topLeft,

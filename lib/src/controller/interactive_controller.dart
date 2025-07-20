@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'package:custom_interactive_viewer/src/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:custom_interactive_viewer/src/models/transformation_state.dart';
 
@@ -151,50 +153,6 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     );
   }
 
-  /// Zoom in by the given factor, keeping the focal point visually fixed.
-  @Deprecated('Use zoom(factor: 0.2) instead')
-  Future<void> zoomIn({
-    double factor = 1.2,
-    Offset? focalPoint,
-    bool animate = true,
-    Duration duration = const Duration(milliseconds: 300),
-    Curve curve = Curves.easeInOut,
-  }) async {
-    // Calculate equivalent positive factor for the new zoom method
-    // For a factor of 1.2, we need (1.2-1.0) = 0.2
-    final double positiveFactor = factor - 1.0;
-
-    await zoom(
-      factor: positiveFactor,
-      focalPoint: focalPoint,
-      animate: animate,
-      duration: duration,
-      curve: curve,
-    );
-  }
-
-  /// Zoom out by the given factor, keeping the focal point visually fixed.
-  @Deprecated('Use zoom(factor: -0.2) instead')
-  Future<void> zoomOut({
-    double factor = 1.2,
-    Offset? focalPoint,
-    bool animate = true,
-    Duration duration = const Duration(milliseconds: 300),
-    Curve curve = Curves.easeInOut,
-  }) async {
-    // Calculate equivalent negative factor for the new zoom method
-    // For zooming out by factor 1.2, we need -(1.2-1.0) = -0.2
-    final double negativeFactor = -(factor - 1.0);
-
-    await zoom(
-      factor: negativeFactor,
-      focalPoint: focalPoint,
-      animate: animate,
-      duration: duration,
-      curve: curve,
-    );
-  }
-
   /// Pans the view by the given offset
   ///
   /// The offset specifies how much the view should move. Positive x values
@@ -217,17 +175,6 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     } else {
       updateState(targetState);
     }
-  }
-
-  /// Pans the view by the given delta
-  @Deprecated('Use pan(offset: delta) instead')
-  Future<void> panBy(
-    Offset delta, {
-    bool animate = true,
-    Duration duration = const Duration(milliseconds: 300),
-    Curve curve = Curves.easeInOut,
-  }) async {
-    await pan(delta, animate: animate, duration: duration, curve: curve);
   }
 
   /// Rotates the view by the given angle in radians
@@ -519,26 +466,59 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     // Determine the target scale
     final double targetScale = scale ?? _state.scale;
 
-    // Calculate the offset needed to center the rectangle
-    // The offset is in the coordinate system of the content, before any transformations
-    final Offset targetOffset = Offset(
-      (finalViewportSize.width / 2) - (rectCenter.dx * targetScale),
-      (finalViewportSize.height / 2) - (rectCenter.dy * targetScale),
-    );
-
-    final targetState = _state.copyWith(
-      scale: targetScale,
-      offset: targetOffset,
-    );
-
-    if (animate) {
-      await animateTo(
-        targetState: targetState,
-        duration: duration,
-        curve: curve,
+    // If the content is rotated, we need to adjust the offset calculation
+    if (_state.rotation != 0) {
+      // Create a transformation matrix that represents the desired state
+      // First, we need to transform the rectangle center to screen coordinates
+      // considering the current rotation
+      final double cosRotation = cos(_state.rotation);
+      final double sinRotation = sin(_state.rotation);
+      
+      // Transform the rect center considering rotation around origin (0,0)
+      final double rotatedX = rectCenter.dx * cosRotation - rectCenter.dy * sinRotation;
+      final double rotatedY = rectCenter.dx * sinRotation + rectCenter.dy * cosRotation;
+      
+      // Calculate the offset needed to center the rotated point
+      final Offset targetOffset = Offset(
+        (finalViewportSize.width / 2) - (rotatedX * targetScale),
+        (finalViewportSize.height / 2) - (rotatedY * targetScale),
       );
+      
+      final targetState = _state.copyWith(
+        scale: targetScale,
+        offset: targetOffset,
+      );
+
+      if (animate) {
+        await animateTo(
+          targetState: targetState,
+          duration: duration,
+          curve: curve,
+        );
+      } else {
+        updateState(targetState);
+      }
     } else {
-      updateState(targetState);
+      // No rotation - use simple calculation
+      final Offset targetOffset = Offset(
+        (finalViewportSize.width / 2) - (rectCenter.dx * targetScale),
+        (finalViewportSize.height / 2) - (rectCenter.dy * targetScale),
+      );
+
+      final targetState = _state.copyWith(
+        scale: targetScale,
+        offset: targetOffset,
+      );
+
+      if (animate) {
+        await animateTo(
+          targetState: targetState,
+          duration: duration,
+          curve: curve,
+        );
+      } else {
+        updateState(targetState);
+      }
     }
   }
 
