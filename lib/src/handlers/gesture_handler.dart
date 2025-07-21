@@ -61,7 +61,7 @@ class GestureHandler {
   Offset? _doubleTapPosition;
 
   /// Tracks whether Ctrl key is currently pressed
-  bool _isCtrlPressed = false;
+  bool isCtrlPressed = false;
 
   /// Simulation for the fling animation
   Simulation? _flingSimulation;
@@ -85,14 +85,6 @@ class GestureHandler {
     required this.enableZoom,
     this.scrollMode = ScrollMode.both,
   });
-
-  /// Gets the current Ctrl key state
-  bool get isCtrlPressed => _isCtrlPressed;
-
-  /// Sets the current Ctrl key state
-  set isCtrlPressed(bool value) {
-    _isCtrlPressed = value;
-  }
 
   /// Handles the start of a scale gesture
   void handleScaleStart(ScaleStartDetails details) {
@@ -318,7 +310,7 @@ class GestureHandler {
   /// Handles pointer scroll events
   void handlePointerScroll(PointerScrollEvent event, BuildContext context) {
     // Determine if scaling should occur based on ctrl key
-    if (enableCtrlScrollToScale && _isCtrlPressed) {
+    if (enableCtrlScrollToScale && isCtrlPressed) {
       _handleCtrlScroll(event, context);
     } else {
       _handleNormalScroll(event);
@@ -331,11 +323,11 @@ class GestureHandler {
     if (box == null) return;
 
     final Offset localPosition = box.globalToLocal(event.position);
-    
+
     // Calculate zoom factor - negative scrollDelta.dy means scroll up (zoom in)
     // This matches browser behavior: scroll up = zoom in, scroll down = zoom out
     final double zoomFactor = event.scrollDelta.dy > 0 ? -0.1 : 0.1;
-    
+
     controller.zoom(
       factor: zoomFactor,
       focalPoint: localPosition,
@@ -348,7 +340,9 @@ class GestureHandler {
   /// Handle normal scroll for panning
   void _handleNormalScroll(PointerScrollEvent event) {
     // Pan using scroll delta, constrained by scroll mode
-    final Offset constrainedDelta = _constrainPanByScrollMode(-event.scrollDelta);
+    final Offset constrainedDelta = _constrainPanByScrollMode(
+      -event.scrollDelta,
+    );
     controller.pan(constrainedDelta, animate: false);
 
     _applyConstraints();

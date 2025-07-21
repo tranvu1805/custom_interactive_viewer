@@ -12,9 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Scroll Mode Test',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const MyHomePage(),
     );
   }
@@ -46,9 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scroll Mode Test'),
-      ),
+      appBar: AppBar(title: const Text('Scroll Mode Test')),
       body: Column(
         children: [
           Padding(
@@ -99,9 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
             child: CustomInteractiveViewer(
               controller: _controller,
               contentSize: const Size(1200, 1200),
-              interactionConfig: InteractionConfig(
-                scrollMode: _scrollMode,
-              ),
+              interactionConfig: InteractionConfig(scrollMode: _scrollMode),
               zoomConfig: const ZoomConfig(
                 enableCtrlScrollToScale: true,
                 enableDoubleTapZoom: true,
@@ -111,7 +105,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 height: 1200,
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.blue, width: 2),
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                 ),
                 child: GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
@@ -163,7 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
           const SizedBox(height: 16),
           FloatingActionButton(
             onPressed: () async {
-              final state = _controller.state;
+              // final state = _controller.state;
               await _controller.center(
                 contentSize: const Size(1200, 1200),
                 viewportSize: MediaQuery.of(context).size,

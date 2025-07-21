@@ -12,9 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Config-based Example',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const MyHomePage(),
     );
   }
@@ -31,14 +29,14 @@ class _MyHomePageState extends State<MyHomePage> {
   late final CustomInteractiveViewerController _controller;
 
   // Configuration presets
-  final _defaultConfig = const ZoomConfig();
-  final _imageViewerConfig = const ZoomConfig(
-    minScale: 0.8,
-    maxScale: 8.0,
-    enableDoubleTapZoom: true,
-    doubleTapZoomFactor: 3.0,
-  );
-  
+  // final _defaultConfig = const ZoomConfig();
+  // final _imageViewerConfig = const ZoomConfig(
+  //   minScale: 0.8,
+  //   maxScale: 8.0,
+  //   enableDoubleTapZoom: true,
+  //   doubleTapZoomFactor: 3.0,
+  // );
+
   ZoomConfig _currentZoomConfig = const ZoomConfig();
   InteractionConfig _currentInteractionConfig = const InteractionConfig();
   KeyboardConfig _currentKeyboardConfig = const KeyboardConfig();
@@ -90,9 +88,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Config-based Interactive Viewer'),
-      ),
+      appBar: AppBar(title: const Text('Config-based Interactive Viewer')),
       body: Column(
         children: [
           // Preset selector
@@ -131,9 +127,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   selected: _currentInteractionConfig.constrainBounds,
                   onSelected: (value) {
                     setState(() {
-                      _currentInteractionConfig = _currentInteractionConfig.copyWith(
-                        constrainBounds: value,
-                      );
+                      _currentInteractionConfig = _currentInteractionConfig
+                          .copyWith(constrainBounds: value);
                     });
                   },
                 ),
@@ -142,9 +137,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   selected: _currentInteractionConfig.enableRotation,
                   onSelected: (value) {
                     setState(() {
-                      _currentInteractionConfig = _currentInteractionConfig.copyWith(
-                        enableRotation: value,
-                      );
+                      _currentInteractionConfig = _currentInteractionConfig
+                          .copyWith(enableRotation: value);
                     });
                   },
                 ),
@@ -177,10 +171,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Colors.blue.shade100,
-                      Colors.purple.shade100,
-                    ],
+                    colors: [Colors.blue.shade100, Colors.purple.shade100],
                   ),
                 ),
                 child: Stack(
@@ -188,15 +179,16 @@ class _MyHomePageState extends State<MyHomePage> {
                     // Grid pattern
                     GridView.builder(
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 10,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 10,
+                          ),
                       itemCount: 100,
                       itemBuilder: (context, index) {
                         return Container(
                           margin: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                             border: Border.all(
                               color: Colors.black12,
                               width: 0.5,
@@ -220,7 +212,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),

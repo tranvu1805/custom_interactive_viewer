@@ -72,7 +72,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
 
   /// Handles keyboard interactions.
   late KeyboardHandler _keyboardHandler;
-  
+
   @override
   void initState() {
     super.initState();
@@ -113,12 +113,14 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
       controller: controller,
       enableRotation: widget.interactionConfig.enableRotation,
       constrainBounds: widget.interactionConfig.constrainBounds,
-      enableDoubleTapZoom: widget.zoomConfig.enableZoom && widget.zoomConfig.enableDoubleTapZoom,
+      enableDoubleTapZoom:
+          widget.zoomConfig.enableZoom && widget.zoomConfig.enableDoubleTapZoom,
       doubleTapZoomFactor: widget.zoomConfig.doubleTapZoomFactor,
       contentSize: widget.contentSize,
       viewportKey: _viewportKey,
       enableCtrlScrollToScale:
-          widget.zoomConfig.enableZoom && widget.zoomConfig.enableCtrlScrollToScale,
+          widget.zoomConfig.enableZoom &&
+          widget.zoomConfig.enableCtrlScrollToScale,
       minScale: widget.zoomConfig.minScale,
       maxScale: widget.zoomConfig.maxScale,
       enableFling: widget.interactionConfig.enableFling,
@@ -130,12 +132,16 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
       keyboardPanDistance: widget.keyboardConfig.keyboardPanDistance,
       keyboardZoomFactor: widget.keyboardConfig.keyboardZoomFactor,
       enableKeyboardControls: widget.keyboardConfig.enableKeyboardControls,
-      enableKeyboardZoom: widget.zoomConfig.enableZoom && widget.keyboardConfig.enableKeyboardControls,
+      enableKeyboardZoom:
+          widget.zoomConfig.enableZoom &&
+          widget.keyboardConfig.enableKeyboardControls,
       enableKeyRepeat: widget.keyboardConfig.enableKeyRepeat,
       keyRepeatInitialDelay: widget.keyboardConfig.keyRepeatInitialDelay,
       keyRepeatInterval: widget.keyboardConfig.keyRepeatInterval,
-      animateKeyboardTransitions: widget.keyboardConfig.animateKeyboardTransitions,
-      keyboardAnimationDuration: widget.keyboardConfig.keyboardAnimationDuration,
+      animateKeyboardTransitions:
+          widget.keyboardConfig.animateKeyboardTransitions,
+      keyboardAnimationDuration:
+          widget.keyboardConfig.keyboardAnimationDuration,
       keyboardAnimationCurve: widget.keyboardConfig.keyboardAnimationCurve,
       focusNode: _focusNode,
       constrainBounds: widget.interactionConfig.constrainBounds,
@@ -247,7 +253,8 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
           onPointerSignal: (PointerSignalEvent event) {
             if (event is PointerScrollEvent) {
               // On web, prevent default browser zoom behavior when Ctrl is pressed
-              if (_gestureHandler.isCtrlPressed && widget.zoomConfig.enableCtrlScrollToScale) {
+              if (_gestureHandler.isCtrlPressed &&
+                  widget.zoomConfig.enableCtrlScrollToScale) {
                 // The event is handled by our zoom logic
                 _gestureHandler.handlePointerScroll(event, context);
               } else {
@@ -259,7 +266,9 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
             onScaleStart: _gestureHandler.handleScaleStart,
             onScaleUpdate: _gestureHandler.handleScaleUpdate,
             onScaleEnd:
-                widget.interactionConfig.enableFling ? _gestureHandler.handleScaleEnd : null,
+                widget.interactionConfig.enableFling
+                    ? _gestureHandler.handleScaleEnd
+                    : null,
             onDoubleTapDown:
                 widget.zoomConfig.enableDoubleTapZoom
                     ? _gestureHandler.handleDoubleTapDown

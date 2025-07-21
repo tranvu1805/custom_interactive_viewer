@@ -51,29 +51,29 @@ class KeyboardConfig {
 
   /// Creates a configuration with keyboard controls disabled.
   const KeyboardConfig.disabled()
-      : enableKeyboardControls = false,
-        keyboardPanDistance = 20.0,
-        keyboardZoomFactor = 1.1,
-        enableKeyRepeat = false,
-        keyRepeatInitialDelay = const Duration(milliseconds: 500),
-        keyRepeatInterval = const Duration(milliseconds: 50),
-        animateKeyboardTransitions = false,
-        keyboardAnimationDuration = const Duration(milliseconds: 200),
-        keyboardAnimationCurve = Curves.easeOutCubic,
-        invertArrowKeyDirection = false;
+    : enableKeyboardControls = false,
+      keyboardPanDistance = 20.0,
+      keyboardZoomFactor = 1.1,
+      enableKeyRepeat = false,
+      keyRepeatInitialDelay = const Duration(milliseconds: 500),
+      keyRepeatInterval = const Duration(milliseconds: 50),
+      animateKeyboardTransitions = false,
+      keyboardAnimationDuration = const Duration(milliseconds: 200),
+      keyboardAnimationCurve = Curves.easeOutCubic,
+      invertArrowKeyDirection = false;
 
   /// Creates a configuration with fast, responsive keyboard controls.
   const KeyboardConfig.fast()
-      : enableKeyboardControls = true,
-        keyboardPanDistance = 40.0,
-        keyboardZoomFactor = 1.2,
-        enableKeyRepeat = true,
-        keyRepeatInitialDelay = const Duration(milliseconds: 300),
-        keyRepeatInterval = const Duration(milliseconds: 30),
-        animateKeyboardTransitions = false,
-        keyboardAnimationDuration = const Duration(milliseconds: 100),
-        keyboardAnimationCurve = Curves.linear,
-        invertArrowKeyDirection = false;
+    : enableKeyboardControls = true,
+      keyboardPanDistance = 40.0,
+      keyboardZoomFactor = 1.2,
+      enableKeyRepeat = true,
+      keyRepeatInitialDelay = const Duration(milliseconds: 300),
+      keyRepeatInterval = const Duration(milliseconds: 30),
+      animateKeyboardTransitions = false,
+      keyboardAnimationDuration = const Duration(milliseconds: 100),
+      keyboardAnimationCurve = Curves.linear,
+      invertArrowKeyDirection = false;
 
   /// Creates a copy of this configuration with the given fields replaced.
   KeyboardConfig copyWith({
@@ -89,16 +89,22 @@ class KeyboardConfig {
     bool? invertArrowKeyDirection,
   }) {
     return KeyboardConfig(
-      enableKeyboardControls: enableKeyboardControls ?? this.enableKeyboardControls,
+      enableKeyboardControls:
+          enableKeyboardControls ?? this.enableKeyboardControls,
       keyboardPanDistance: keyboardPanDistance ?? this.keyboardPanDistance,
       keyboardZoomFactor: keyboardZoomFactor ?? this.keyboardZoomFactor,
       enableKeyRepeat: enableKeyRepeat ?? this.enableKeyRepeat,
-      keyRepeatInitialDelay: keyRepeatInitialDelay ?? this.keyRepeatInitialDelay,
+      keyRepeatInitialDelay:
+          keyRepeatInitialDelay ?? this.keyRepeatInitialDelay,
       keyRepeatInterval: keyRepeatInterval ?? this.keyRepeatInterval,
-      animateKeyboardTransitions: animateKeyboardTransitions ?? this.animateKeyboardTransitions,
-      keyboardAnimationDuration: keyboardAnimationDuration ?? this.keyboardAnimationDuration,
-      keyboardAnimationCurve: keyboardAnimationCurve ?? this.keyboardAnimationCurve,
-      invertArrowKeyDirection: invertArrowKeyDirection ?? this.invertArrowKeyDirection,
+      animateKeyboardTransitions:
+          animateKeyboardTransitions ?? this.animateKeyboardTransitions,
+      keyboardAnimationDuration:
+          keyboardAnimationDuration ?? this.keyboardAnimationDuration,
+      keyboardAnimationCurve:
+          keyboardAnimationCurve ?? this.keyboardAnimationCurve,
+      invertArrowKeyDirection:
+          invertArrowKeyDirection ?? this.invertArrowKeyDirection,
     );
   }
 

@@ -33,12 +33,12 @@ class ZoomConfig {
 
   /// Creates a configuration with zoom disabled.
   const ZoomConfig.disabled()
-      : enableZoom = false,
-        minScale = 1.0,
-        maxScale = 1.0,
-        enableDoubleTapZoom = false,
-        doubleTapZoomFactor = 1.0,
-        enableCtrlScrollToScale = false;
+    : enableZoom = false,
+      minScale = 1.0,
+      maxScale = 1.0,
+      enableDoubleTapZoom = false,
+      doubleTapZoomFactor = 1.0,
+      enableCtrlScrollToScale = false;
 
   /// Creates a copy of this configuration with the given fields replaced.
   ZoomConfig copyWith({
@@ -55,7 +55,8 @@ class ZoomConfig {
       maxScale: maxScale ?? this.maxScale,
       enableDoubleTapZoom: enableDoubleTapZoom ?? this.enableDoubleTapZoom,
       doubleTapZoomFactor: doubleTapZoomFactor ?? this.doubleTapZoomFactor,
-      enableCtrlScrollToScale: enableCtrlScrollToScale ?? this.enableCtrlScrollToScale,
+      enableCtrlScrollToScale:
+          enableCtrlScrollToScale ?? this.enableCtrlScrollToScale,
     );
   }
 

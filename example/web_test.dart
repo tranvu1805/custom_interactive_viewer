@@ -12,9 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Custom Interactive Viewer Web Test',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const MyHomePage(),
     );
   }
@@ -45,22 +43,18 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Web Zoom Test'),
-      ),
+      appBar: AppBar(title: const Text('Web Zoom Test')),
       body: Center(
         child: CustomInteractiveViewer(
           controller: _controller,
           contentSize: const Size(800, 600),
-          zoomConfig: const ZoomConfig(
-            enableCtrlScrollToScale: true,
-          ),
+          zoomConfig: const ZoomConfig(enableCtrlScrollToScale: true),
           child: Container(
             width: 800,
             height: 600,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.blue, width: 2),
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
             ),
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -70,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
               itemBuilder: (context, index) {
                 return Container(
                   margin: const EdgeInsets.all(4),
-                  color: Colors.blue.withOpacity(0.5),
+                  color: Colors.blue.withValues(alpha: 0.5),
                   child: Center(
                     child: Text(
                       '$index',

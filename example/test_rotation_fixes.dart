@@ -12,9 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Rotation Fixes Test',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const RotationTestPage(),
     );
   }
@@ -65,9 +63,7 @@ class _RotationTestPageState extends State<RotationTestPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Test Rotation Fixes'),
-      ),
+      appBar: AppBar(title: const Text('Test Rotation Fixes')),
       body: Column(
         children: [
           // Control buttons
@@ -93,11 +89,12 @@ class _RotationTestPageState extends State<RotationTestPage> {
                   child: const Text('Reset'),
                 ),
                 ElevatedButton(
-                  onPressed: () => _controller.fitToScreen(
-                    const Size(400, 400),
-                    MediaQuery.of(context).size,
-                    animate: true,
-                  ),
+                  onPressed:
+                      () => _controller.fitToScreen(
+                        const Size(400, 400),
+                        MediaQuery.of(context).size,
+                        animate: true,
+                      ),
                   child: const Text('Fit to Screen'),
                 ),
               ],
@@ -186,27 +183,20 @@ class _RotationTestPageState extends State<RotationTestPage> {
 class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.grey[400]!
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
+    final paint =
+        Paint()
+          ..color = Colors.grey[400]!
+          ..strokeWidth = 1.0
+          ..style = PaintingStyle.stroke;
 
     // Draw vertical lines
     for (double x = 0; x <= size.width; x += 50) {
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
-        paint,
-      );
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
 
     // Draw horizontal lines
     for (double y = 0; y <= size.height; y += 50) {
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        paint,
-      );
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
 

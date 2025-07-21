@@ -139,10 +139,16 @@ class TransformationState {
     final double absRotation = rotation.abs();
     final double cosRotation = cos(absRotation);
     final double sinRotation = sin(absRotation);
-    
+
     // Calculate the dimensions of the bounding box that contains the rotated content
-    final double rotatedWidth = (contentSize.width * cosRotation + contentSize.height * sinRotation).abs() * scale;
-    final double rotatedHeight = (contentSize.width * sinRotation + contentSize.height * cosRotation).abs() * scale;
+    final double rotatedWidth =
+        (contentSize.width * cosRotation + contentSize.height * sinRotation)
+            .abs() *
+        scale;
+    final double rotatedHeight =
+        (contentSize.width * sinRotation + contentSize.height * cosRotation)
+            .abs() *
+        scale;
 
     if (rotatedWidth <= viewportSize.width) {
       // If rotated content is smaller than viewport, center it horizontally
@@ -152,9 +158,10 @@ class TransformationState {
       // Calculate the offset adjustment needed due to rotation
       final double centerX = contentSize.width * scale / 2;
       final double centerY = contentSize.height * scale / 2;
-      final double rotatedCenterX = centerX * cosRotation - centerY * sinRotation;
+      final double rotatedCenterX =
+          centerX * cosRotation - centerY * sinRotation;
       final double offsetAdjustmentX = centerX - rotatedCenterX;
-      
+
       final double minX = viewportSize.width - rotatedWidth + offsetAdjustmentX;
       final double maxX = offsetAdjustmentX;
       newX = newX.clamp(minX, maxX);
@@ -168,10 +175,12 @@ class TransformationState {
       // Calculate the offset adjustment needed due to rotation
       final double centerX = contentSize.width * scale / 2;
       final double centerY = contentSize.height * scale / 2;
-      final double rotatedCenterY = centerX * sinRotation + centerY * cosRotation;
+      final double rotatedCenterY =
+          centerX * sinRotation + centerY * cosRotation;
       final double offsetAdjustmentY = centerY - rotatedCenterY;
-      
-      final double minY = viewportSize.height - rotatedHeight + offsetAdjustmentY;
+
+      final double minY =
+          viewportSize.height - rotatedHeight + offsetAdjustmentY;
       final double maxY = offsetAdjustmentY;
       newY = newY.clamp(minY, maxY);
     }

@@ -473,17 +473,19 @@ class CustomInteractiveViewerController extends ChangeNotifier {
       // considering the current rotation
       final double cosRotation = cos(_state.rotation);
       final double sinRotation = sin(_state.rotation);
-      
+
       // Transform the rect center considering rotation around origin (0,0)
-      final double rotatedX = rectCenter.dx * cosRotation - rectCenter.dy * sinRotation;
-      final double rotatedY = rectCenter.dx * sinRotation + rectCenter.dy * cosRotation;
-      
+      final double rotatedX =
+          rectCenter.dx * cosRotation - rectCenter.dy * sinRotation;
+      final double rotatedY =
+          rectCenter.dx * sinRotation + rectCenter.dy * cosRotation;
+
       // Calculate the offset needed to center the rotated point
       final Offset targetOffset = Offset(
         (finalViewportSize.width / 2) - (rotatedX * targetScale),
         (finalViewportSize.height / 2) - (rotatedY * targetScale),
       );
-      
+
       final targetState = _state.copyWith(
         scale: targetScale,
         offset: targetOffset,

@@ -26,17 +26,17 @@ class InteractionConfig {
 
   /// Creates a configuration with all interactions disabled.
   const InteractionConfig.disabled()
-      : enableRotation = false,
-        constrainBounds = true,
-        enableFling = false,
-        scrollMode = ScrollMode.none;
+    : enableRotation = false,
+      constrainBounds = true,
+      enableFling = false,
+      scrollMode = ScrollMode.none;
 
   /// Creates a configuration optimized for image viewing.
   const InteractionConfig.imageViewer()
-      : enableRotation = false,
-        constrainBounds = true,
-        enableFling = true,
-        scrollMode = ScrollMode.both;
+    : enableRotation = false,
+      constrainBounds = true,
+      enableFling = true,
+      scrollMode = ScrollMode.both;
 
   /// Creates a copy of this configuration with the given fields replaced.
   InteractionConfig copyWith({
