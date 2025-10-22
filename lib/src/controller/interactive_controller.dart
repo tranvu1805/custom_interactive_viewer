@@ -32,7 +32,6 @@ class CustomInteractiveViewerController extends ChangeNotifier {
   bool _isPanning = false;
   bool _isScaling = false;
   bool _isAnimating = false;
-  bool _isDisposed = false;
 
   /// Animation controllers and animations
   AnimationController? _animationController;
@@ -97,7 +96,6 @@ class CustomInteractiveViewerController extends ChangeNotifier {
 
   /// Updates the complete transformation state at once
   void updateState(TransformationState newState) {
-    if (_isDisposed) return;
     if (newState == _state) return;
 
     _state = newState;
@@ -262,7 +260,6 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     Curve curve = Curves.easeInOut,
     bool animate = true,
   }) async {
-    if (_isDisposed) return;
     if (!animate) {
       updateState(targetState);
       return;
@@ -277,9 +274,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     notifyListeners();
 
     // Dispose any previous animation controller
-    _animationController?.stop();
     _animationController?.dispose();
-    if (_isDisposed) return;
     _animationController = AnimationController(vsync: _vsync!, duration: duration);
 
     // Create a tween for the entire transformation state
@@ -289,26 +284,19 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     ).animate(CurvedAnimation(parent: _animationController!, curve: curve));
 
     _animationController!.addListener(() {
-      if (_isDisposed) return;
       updateState(_transformationAnimation!.value);
     });
 
     try {
       await _animationController!.forward();
-    } catch (e) {
-      // Animation was cancelled or failed
     } finally {
-      if (!_isDisposed && _animationController != null) {
-        _animationController!.dispose();
-        _animationController = null;
-        _transformationAnimation = null;
-      }
+      _animationController!.dispose();
+      _animationController = null;
+      _transformationAnimation = null;
 
-      if (!_isDisposed) {
-        _isAnimating = false;
-        onEvent?.call(ViewerEvent.animationEnd);
-        notifyListeners();
-      }
+      _isAnimating = false;
+      onEvent?.call(ViewerEvent.animationEnd);
+      notifyListeners();
     }
   }
 
@@ -511,13 +499,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _isDisposed = true;
-    _animationController?.stop();
     _animationController?.dispose();
-    _animationController = null;
-    _transformationAnimation = null;
-    // _vsync = null;
-    _isAnimating = false;
     super.dispose();
   }
 }
