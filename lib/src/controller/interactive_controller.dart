@@ -279,6 +279,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     // Dispose any previous animation controller
     _animationController?.stop();
     _animationController?.dispose();
+    if (_isDisposed) return;
     _animationController = AnimationController(vsync: _vsync!, duration: duration);
 
     // Create a tween for the entire transformation state
@@ -297,14 +298,13 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     } finally {
       if (!_isDisposed) {
         _animationController!.dispose();
-
-        _animationController = null;
-        _transformationAnimation = null;
-
-        _isAnimating = false;
-        onEvent?.call(ViewerEvent.animationEnd);
-        notifyListeners();
       }
+      _animationController = null;
+      _transformationAnimation = null;
+
+      _isAnimating = false;
+      onEvent?.call(ViewerEvent.animationEnd);
+      notifyListeners();
     }
   }
 
