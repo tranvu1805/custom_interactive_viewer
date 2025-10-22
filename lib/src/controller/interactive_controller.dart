@@ -295,16 +295,20 @@ class CustomInteractiveViewerController extends ChangeNotifier {
 
     try {
       await _animationController!.forward();
+    } catch (e) {
+      // Animation was cancelled or failed
     } finally {
-      if (!_isDisposed) {
+      if (!_isDisposed && _animationController != null) {
         _animationController!.dispose();
+        _animationController = null;
+        _transformationAnimation = null;
       }
-      _animationController = null;
-      _transformationAnimation = null;
 
-      _isAnimating = false;
-      onEvent?.call(ViewerEvent.animationEnd);
-      notifyListeners();
+      if (!_isDisposed) {
+        _isAnimating = false;
+        onEvent?.call(ViewerEvent.animationEnd);
+        notifyListeners();
+      }
     }
   }
 
