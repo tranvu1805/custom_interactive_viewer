@@ -276,6 +276,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     notifyListeners();
 
     // Dispose any previous animation controller
+    _animationController?.stop();
     _animationController?.dispose();
     _animationController = AnimationController(vsync: _vsync!, duration: duration);
 
@@ -499,6 +500,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    _animationController?.stop();
     _animationController?.dispose();
     super.dispose();
   }
