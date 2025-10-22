@@ -1,7 +1,8 @@
 import 'dart:math';
+
+import 'package:custom_interactive_viewer/src/models/transformation_state.dart';
 import 'package:custom_interactive_viewer/src/widget.dart';
 import 'package:flutter/material.dart';
-import 'package:custom_interactive_viewer/src/models/transformation_state.dart';
 
 /// Events that can be fired by the [CustomInteractiveViewerController]
 enum ViewerEvent {
@@ -31,6 +32,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
   bool _isPanning = false;
   bool _isScaling = false;
   bool _isAnimating = false;
+  bool _isDisposed = false;
 
   /// Animation controllers and animations
   AnimationController? _animationController;
@@ -84,23 +86,18 @@ class CustomInteractiveViewerController extends ChangeNotifier {
 
   /// Updates the transformation state
   void update({double? newScale, Offset? newOffset, double? newRotation}) {
-    if (newScale == _state.scale &&
-        newOffset == _state.offset &&
-        newRotation == _state.rotation) {
+    if (newScale == _state.scale && newOffset == _state.offset && newRotation == _state.rotation) {
       return;
     }
 
-    _state = _state.copyWith(
-      scale: newScale,
-      offset: newOffset,
-      rotation: newRotation,
-    );
+    _state = _state.copyWith(scale: newScale, offset: newOffset, rotation: newRotation);
 
     notifyListeners();
   }
 
   /// Updates the complete transformation state at once
   void updateState(TransformationState newState) {
+    if (_isDisposed) return;
     if (newState == _state) return;
 
     _state = newState;
@@ -127,9 +124,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
   }) async {
     final double absScaleFactor = 1.0 + factor.abs();
     final double targetScale =
-        factor >= 0
-            ? _state.scale * absScaleFactor
-            : _state.scale / absScaleFactor;
+        factor >= 0 ? _state.scale * absScaleFactor : _state.scale / absScaleFactor;
 
     TransformationState targetState;
 
@@ -145,12 +140,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
       targetState = _state.copyWith(scale: targetScale);
     }
 
-    await animateTo(
-      targetState: targetState,
-      duration: duration,
-      curve: curve,
-      animate: animate,
-    );
+    await animateTo(targetState: targetState, duration: duration, curve: curve, animate: animate);
   }
 
   /// Pans the view by the given offset
@@ -167,11 +157,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     final targetState = _state.copyWith(offset: _state.offset + offset);
 
     if (animate) {
-      await animateTo(
-        targetState: targetState,
-        duration: duration,
-        curve: curve,
-      );
+      await animateTo(targetState: targetState, duration: duration, curve: curve);
     } else {
       updateState(targetState);
     }
@@ -190,17 +176,12 @@ class CustomInteractiveViewerController extends ChangeNotifier {
 
     if (focalPoint != null) {
       // Keep the focal point in the same position on screen during rotation
-      final Offset beforeRotationOffset = _state.screenToContentPoint(
-        focalPoint,
-      );
+      final Offset beforeRotationOffset = _state.screenToContentPoint(focalPoint);
 
       targetState = _state.copyWith(rotation: targetRotation);
 
-      final Offset afterRotationOffset = targetState.screenToContentPoint(
-        focalPoint,
-      );
-      final Offset offsetAdjustment =
-          afterRotationOffset - beforeRotationOffset;
+      final Offset afterRotationOffset = targetState.screenToContentPoint(focalPoint);
+      final Offset offsetAdjustment = afterRotationOffset - beforeRotationOffset;
 
       targetState = targetState.copyWith(
         offset: _state.offset - offsetAdjustment * targetState.scale,
@@ -210,11 +191,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     }
 
     if (animate) {
-      await animateTo(
-        targetState: targetState,
-        duration: duration,
-        curve: curve,
-      );
+      await animateTo(targetState: targetState, duration: duration, curve: curve);
     } else {
       updateState(targetState);
     }
@@ -240,12 +217,10 @@ class CustomInteractiveViewerController extends ChangeNotifier {
   }
 
   /// Convert a point from screen coordinates to content coordinates
-  Offset screenToContentPoint(Offset screenPoint) =>
-      _state.screenToContentPoint(screenPoint);
+  Offset screenToContentPoint(Offset screenPoint) => _state.screenToContentPoint(screenPoint);
 
   /// Convert a point from content coordinates to screen coordinates
-  Offset contentToScreenPoint(Offset contentPoint) =>
-      _state.contentToScreenPoint(contentPoint);
+  Offset contentToScreenPoint(Offset contentPoint) => _state.contentToScreenPoint(contentPoint);
 
   /// Fit the content to the screen size
   Future<void> fitToScreen(
@@ -256,18 +231,10 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     Duration duration = const Duration(milliseconds: 300),
     Curve curve = Curves.easeInOut,
   }) async {
-    final targetState = TransformationState.fitContent(
-      contentSize,
-      viewportSize,
-      padding: padding,
-    );
+    final targetState = TransformationState.fitContent(contentSize, viewportSize, padding: padding);
 
     if (animate) {
-      await animateTo(
-        targetState: targetState,
-        duration: duration,
-        curve: curve,
-      );
+      await animateTo(targetState: targetState, duration: duration, curve: curve);
     } else {
       updateState(targetState);
     }
@@ -282,11 +249,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     final targetState = TransformationState();
 
     if (animate) {
-      await animateTo(
-        targetState: targetState,
-        duration: duration,
-        curve: curve,
-      );
+      await animateTo(targetState: targetState, duration: duration, curve: curve);
     } else {
       updateState(targetState);
     }
@@ -305,9 +268,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     }
 
     if (_vsync == null) {
-      throw StateError(
-        'Setting vsync is required to be able to perform animations',
-      );
+      throw StateError('Setting vsync is required to be able to perform animations');
     }
 
     _isAnimating = true;
@@ -316,10 +277,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
 
     // Dispose any previous animation controller
     _animationController?.dispose();
-    _animationController = AnimationController(
-      vsync: _vsync!,
-      duration: duration,
-    );
+    _animationController = AnimationController(vsync: _vsync!, duration: duration);
 
     // Create a tween for the entire transformation state
     _transformationAnimation = TransformationStateTween(
@@ -328,13 +286,16 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     ).animate(CurvedAnimation(parent: _animationController!, curve: curve));
 
     _animationController!.addListener(() {
+      if (_isDisposed) return;
       updateState(_transformationAnimation!.value);
     });
 
     try {
       await _animationController!.forward();
     } finally {
-      _animationController!.dispose();
+      if (!_isDisposed) {
+        _animationController!.dispose();
+      }
       _animationController = null;
       _transformationAnimation = null;
 
@@ -353,18 +314,10 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     Curve curve = Curves.easeInOut,
     double padding = 20.0,
   }) async {
-    final targetState = TransformationState.zoomToRegion(
-      region,
-      viewportSize,
-      padding: padding,
-    );
+    final targetState = TransformationState.zoomToRegion(region, viewportSize, padding: padding);
 
     if (animate) {
-      await animateTo(
-        targetState: targetState,
-        duration: duration,
-        curve: curve,
-      );
+      await animateTo(targetState: targetState, duration: duration, curve: curve);
     } else {
       updateState(targetState);
     }
@@ -372,10 +325,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
 
   /// Ensures content stays within bounds
   void constrainToBounds(Size contentSize, Size viewportSize) {
-    final constrainedState = _state.constrainToViewport(
-      contentSize,
-      viewportSize,
-    );
+    final constrainedState = _state.constrainToViewport(contentSize, viewportSize);
     if (constrainedState != _state) {
       updateState(constrainedState);
     }
@@ -424,11 +374,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     );
 
     if (animate) {
-      await animateTo(
-        targetState: targetState,
-        duration: duration,
-        curve: curve,
-      );
+      await animateTo(targetState: targetState, duration: duration, curve: curve);
     } else {
       updateState(targetState);
     }
@@ -475,10 +421,8 @@ class CustomInteractiveViewerController extends ChangeNotifier {
       final double sinRotation = sin(_state.rotation);
 
       // Transform the rect center considering rotation around origin (0,0)
-      final double rotatedX =
-          rectCenter.dx * cosRotation - rectCenter.dy * sinRotation;
-      final double rotatedY =
-          rectCenter.dx * sinRotation + rectCenter.dy * cosRotation;
+      final double rotatedX = rectCenter.dx * cosRotation - rectCenter.dy * sinRotation;
+      final double rotatedY = rectCenter.dx * sinRotation + rectCenter.dy * cosRotation;
 
       // Calculate the offset needed to center the rotated point
       final Offset targetOffset = Offset(
@@ -486,17 +430,10 @@ class CustomInteractiveViewerController extends ChangeNotifier {
         (finalViewportSize.height / 2) - (rotatedY * targetScale),
       );
 
-      final targetState = _state.copyWith(
-        scale: targetScale,
-        offset: targetOffset,
-      );
+      final targetState = _state.copyWith(scale: targetScale, offset: targetOffset);
 
       if (animate) {
-        await animateTo(
-          targetState: targetState,
-          duration: duration,
-          curve: curve,
-        );
+        await animateTo(targetState: targetState, duration: duration, curve: curve);
       } else {
         updateState(targetState);
       }
@@ -507,17 +444,10 @@ class CustomInteractiveViewerController extends ChangeNotifier {
         (finalViewportSize.height / 2) - (rectCenter.dy * targetScale),
       );
 
-      final targetState = _state.copyWith(
-        scale: targetScale,
-        offset: targetOffset,
-      );
+      final targetState = _state.copyWith(scale: targetScale, offset: targetOffset);
 
       if (animate) {
-        await animateTo(
-          targetState: targetState,
-          duration: duration,
-          curve: curve,
-        );
+        await animateTo(targetState: targetState, duration: duration, curve: curve);
       } else {
         updateState(targetState);
       }
@@ -568,6 +498,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _animationController?.dispose();
     super.dispose();
   }
@@ -576,10 +507,8 @@ class CustomInteractiveViewerController extends ChangeNotifier {
 /// A [Tween] for animating between two [TransformationState]s
 class TransformationStateTween extends Tween<TransformationState> {
   /// Creates a [TransformationState] tween
-  TransformationStateTween({
-    required TransformationState begin,
-    required TransformationState end,
-  }) : super(begin: begin, end: end);
+  TransformationStateTween({required TransformationState begin, required TransformationState end})
+    : super(begin: begin, end: end);
 
   @override
   TransformationState lerp(double t) {
