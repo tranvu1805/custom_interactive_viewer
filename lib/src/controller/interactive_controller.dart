@@ -506,12 +506,10 @@ class CustomInteractiveViewerController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
-    if (_animationController != null) {
-      _animationController!.stop();
-      _animationController!.dispose();
-      _animationController = null;
-      _transformationAnimation = null;
-    }
+    _animationController?.stop();
+    _animationController?.dispose();
+    _animationController = null;
+    _transformationAnimation = null;
     _isAnimating = false;
     super.dispose();
   }
