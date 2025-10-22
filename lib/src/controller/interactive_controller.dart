@@ -262,6 +262,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     Curve curve = Curves.easeInOut,
     bool animate = true,
   }) async {
+    if (_isDisposed) return;
     if (!animate) {
       updateState(targetState);
       return;
@@ -296,13 +297,14 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     } finally {
       if (!_isDisposed) {
         _animationController!.dispose();
-      }
-      _animationController = null;
-      _transformationAnimation = null;
 
-      _isAnimating = false;
-      onEvent?.call(ViewerEvent.animationEnd);
-      notifyListeners();
+        _animationController = null;
+        _transformationAnimation = null;
+
+        _isAnimating = false;
+        onEvent?.call(ViewerEvent.animationEnd);
+        notifyListeners();
+      }
     }
   }
 
