@@ -4,8 +4,8 @@ import 'package:custom_interactive_viewer/src/config/zoom_config.dart';
 import 'package:custom_interactive_viewer/src/controller/interactive_controller.dart';
 import 'package:custom_interactive_viewer/src/handlers/gesture_handler.dart';
 import 'package:custom_interactive_viewer/src/handlers/keyboard_handler.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// A customizable widget for viewing content with interactive transformations.
@@ -96,8 +96,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
   void _registerControllerSizeGetters() {
     // Register viewport size getter
     controller.viewportSizeGetter = () {
-      final RenderBox? box =
-          _viewportKey.currentContext?.findRenderObject() as RenderBox?;
+      final RenderBox? box = _viewportKey.currentContext?.findRenderObject() as RenderBox?;
       return box?.size;
     };
 
@@ -113,14 +112,12 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
       controller: controller,
       enableRotation: widget.interactionConfig.enableRotation,
       constrainBounds: widget.interactionConfig.constrainBounds,
-      enableDoubleTapZoom:
-          widget.zoomConfig.enableZoom && widget.zoomConfig.enableDoubleTapZoom,
+      enableDoubleTapZoom: widget.zoomConfig.enableZoom && widget.zoomConfig.enableDoubleTapZoom,
       doubleTapZoomFactor: widget.zoomConfig.doubleTapZoomFactor,
       contentSize: widget.contentSize,
       viewportKey: _viewportKey,
       enableCtrlScrollToScale:
-          widget.zoomConfig.enableZoom &&
-          widget.zoomConfig.enableCtrlScrollToScale,
+          widget.zoomConfig.enableZoom && widget.zoomConfig.enableCtrlScrollToScale,
       minScale: widget.zoomConfig.minScale,
       maxScale: widget.zoomConfig.maxScale,
       enableFling: widget.interactionConfig.enableFling,
@@ -133,15 +130,12 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
       keyboardZoomFactor: widget.keyboardConfig.keyboardZoomFactor,
       enableKeyboardControls: widget.keyboardConfig.enableKeyboardControls,
       enableKeyboardZoom:
-          widget.zoomConfig.enableZoom &&
-          widget.keyboardConfig.enableKeyboardControls,
+          widget.zoomConfig.enableZoom && widget.keyboardConfig.enableKeyboardControls,
       enableKeyRepeat: widget.keyboardConfig.enableKeyRepeat,
       keyRepeatInitialDelay: widget.keyboardConfig.keyRepeatInitialDelay,
       keyRepeatInterval: widget.keyboardConfig.keyRepeatInterval,
-      animateKeyboardTransitions:
-          widget.keyboardConfig.animateKeyboardTransitions,
-      keyboardAnimationDuration:
-          widget.keyboardConfig.keyboardAnimationDuration,
+      animateKeyboardTransitions: widget.keyboardConfig.animateKeyboardTransitions,
+      keyboardAnimationDuration: widget.keyboardConfig.keyboardAnimationDuration,
       keyboardAnimationCurve: widget.keyboardConfig.keyboardAnimationCurve,
       focusNode: _focusNode,
       constrainBounds: widget.interactionConfig.constrainBounds,
@@ -189,6 +183,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
       _focusNode.dispose();
     }
     if (widget.controller == null) {
+      controller.stopAnimation();
       controller.dispose();
     }
     _keyboardHandler.dispose();
@@ -227,8 +222,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
     Curve curve = Curves.easeInOut,
   }) async {
     if (widget.contentSize == null) return;
-    final RenderBox? box =
-        _viewportKey.currentContext?.findRenderObject() as RenderBox?;
+    final RenderBox? box = _viewportKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
 
     final Size viewportSize = box.size;
@@ -253,8 +247,7 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
           onPointerSignal: (PointerSignalEvent event) {
             if (event is PointerScrollEvent) {
               // On web, prevent default browser zoom behavior when Ctrl is pressed
-              if (_gestureHandler.isCtrlPressed &&
-                  widget.zoomConfig.enableCtrlScrollToScale) {
+              if (_gestureHandler.isCtrlPressed && widget.zoomConfig.enableCtrlScrollToScale) {
                 // The event is handled by our zoom logic
                 _gestureHandler.handlePointerScroll(event, context);
               } else {
@@ -266,13 +259,9 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
             onScaleStart: _gestureHandler.handleScaleStart,
             onScaleUpdate: _gestureHandler.handleScaleUpdate,
             onScaleEnd:
-                widget.interactionConfig.enableFling
-                    ? _gestureHandler.handleScaleEnd
-                    : null,
+                widget.interactionConfig.enableFling ? _gestureHandler.handleScaleEnd : null,
             onDoubleTapDown:
-                widget.zoomConfig.enableDoubleTapZoom
-                    ? _gestureHandler.handleDoubleTapDown
-                    : null,
+                widget.zoomConfig.enableDoubleTapZoom ? _gestureHandler.handleDoubleTapDown : null,
             onDoubleTap:
                 widget.zoomConfig.enableDoubleTapZoom
                     ? () => _gestureHandler.handleDoubleTap(context)

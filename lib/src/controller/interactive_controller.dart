@@ -503,6 +503,12 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     _getContentSize = getter;
   }
 
+  void stopAnimation() {
+    if (_animationController?.isAnimating ?? false) {
+      _animationController?.stop();
+    }
+  }
+
   @override
   void dispose() {
     _isDisposed = true;
