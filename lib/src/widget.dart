@@ -179,11 +179,11 @@ class CustomInteractiveViewerState extends State<CustomInteractiveViewer>
   @override
   void dispose() {
     controller.removeListener(_onControllerUpdate);
+    controller.stopAnimation();
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
     if (widget.controller == null) {
-      controller.stopAnimation();
       controller.dispose();
     }
     _keyboardHandler.dispose();

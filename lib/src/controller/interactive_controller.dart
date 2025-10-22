@@ -516,6 +516,7 @@ class CustomInteractiveViewerController extends ChangeNotifier {
     _animationController?.dispose();
     _animationController = null;
     _transformationAnimation = null;
+    // _vsync = null;
     _isAnimating = false;
     super.dispose();
   }
